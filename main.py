@@ -85,9 +85,8 @@ app.include_router(web_router, prefix="")
 # Webhook route handler for Telegram updates
 @app.post("/webhook")
 async def webhook(request: Request):
-    # Process the Telegram update
     update_data = await request.json()
-    await dp.feed_update(bot, update_data)
+    await dp.feed_webhook_update(bot, update_data)
     return Response(status_code=200)
 
 
