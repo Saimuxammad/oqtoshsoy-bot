@@ -1,69 +1,255 @@
-async def get_all_rooms():
-    # Return list of rooms with basic info
-    # Example:
-    return [
-        {"id": 1, "name": "Стандартный номер", "description": "Уютный стандартный номер с видом на горы.",
-         "price": 3000, "image_url": "/static/images/standard.jpg"},
-        {"id": 2, "name": "Люкс", "description": "Просторный номер люкс с отдельной гостиной.", "price": 5000,
-         "image_url": "/static/images/luxury.jpg"},
-        {"id": 3, "name": "Семейный номер", "description": "Большой номер для всей семьи.", "price": 7000,
-         "image_url": "/static/images/family.jpg"},
-        {"id": 4, "name": "Президентский люкс", "description": "Наш лучший номер с панорамным видом.", "price": 12000,
-         "image_url": "/static/images/presidential.jpg"}
-    ]
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import or_, and_, func, desc
+from datetime import datetime, timedelta
+from typing import List, Dict, Optional, Any, Tuple
+
+from app.database.models import User, Room, Booking, Review
 
 
-async def get_user_bookings(user_id):
-    # Return bookings for specific user
-    # Example:
-    return [
-        {"id": 1, "room_name": "Стандартный номер", "check_in": "2025-04-01", "check_out": "2025-04-03", "guests": 2,
-         "total_price": 6000, "status": "confirmed"}
-    ]
+# User-related functions
+async def get_user_by_telegram_id(db: AsyncSession, telegram_id: int) -> Optional[User]:
+    """Get a user by Telegram ID"""
+    result = await db.execute(select(User).where(User.telegram_id == telegram_id))
+    return result.scalars().first()
 
 
-async def calculate_booking_price(room_id, check_in, check_out):
-    # Calculate total price for a booking
-    from datetime import datetime
+async def create_user(db: AsyncSession, telegram_id: int, username: Optional[str] = None,
+                      first_name: Optional[str] = None, last_name: Optional[str] = None) -> User:
+    """Create a new user"""
+    user = User(
+        telegram_id=telegram_id,
+        username=username,
+        first_name=first_name,
+        last_name=last_name
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
 
-    # Find room price
-    rooms = await get_all_rooms()
-    room = next((r for r in rooms if r["id"] == room_id), None)
+
+async def get_or_create_user(db: AsyncSession, telegram_id: int, username: Optional[str] = None,
+                             first_name: Optional[str] = None, last_name: Optional[str] = None) -> User:
+    """Get a user by Telegram ID or create if not exists"""
+    user = await get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        user = await create_user(db, telegram_id, username, first_name, last_name)
+    return user
+
+
+# Room-related functions
+async def get_all_rooms(db: AsyncSession) -> List[Room]:
+    """Get all available rooms"""
+    result = await db.execute(select(Room).order_by(Room.price))
+    return result.scalars().all()
+
+
+async def get_room(db: AsyncSession, room_id: int) -> Optional[Room]:
+    """Get a room by ID"""
+    result = await db.execute(select(Room).where(Room.id == room_id))
+    return result.scalars().first()
+
+
+async def get_room_reviews(db: AsyncSession, room_id: int) -> List[Review]:
+    """Get reviews for a specific room"""
+    result = await db.execute(
+        select(Review)
+        .where(Review.room_id == room_id)
+        .order_by(desc(Review.created_at))
+    )
+    return result.scalars().all()
+
+
+async def add_room_review(db: AsyncSession, user_id: int, room_id: int,
+                          rating: int, comment: Optional[str] = None) -> Review:
+    """Add a review for a room"""
+    review = Review(
+        user_id=user_id,
+        room_id=room_id,
+        rating=rating,
+        comment=comment,
+        created_at=datetime.now()
+    )
+    db.add(review)
+    await db.commit()
+    await db.refresh(review)
+    return review
+
+
+# Booking-related functions
+async def create_booking(db: AsyncSession, user_id: int, room_id: int,
+                         check_in: str, check_out: str, guests: int,
+                         phone: Optional[str] = None) -> Booking:
+    """Create a new booking"""
+    # Convert date strings to date objects
+    check_in_date = datetime.strptime(check_in, "%Y-%m-%d").date()
+    check_out_date = datetime.strptime(check_out, "%Y-%m-%d").date()
+
+    # Check if dates are valid
+    if check_out_date <= check_in_date:
+        raise ValueError("Check-out date must be after check-in date")
+
+    # Check if room is available for these dates
+    is_available = await check_room_availability(db, room_id, check_in, check_out)
+    if not is_available:
+        raise ValueError("Room is not available for selected dates")
+
+    # Get room to calculate price
+    room = await get_room(db, room_id)
     if not room:
         raise ValueError("Room not found")
 
-    # Calculate number of nights
-    date_format = "%Y-%m-%d"
-    check_in_date = datetime.strptime(check_in, date_format)
-    check_out_date = datetime.strptime(check_out, date_format)
+    # Calculate nights and total price
     nights = (check_out_date - check_in_date).days
+    total_price = room.price * nights
 
+    # Create booking
+    booking = Booking(
+        user_id=user_id,
+        room_id=room_id,
+        check_in=check_in_date,
+        check_out=check_out_date,
+        guests=guests,
+        phone=phone,
+        total_price=total_price,
+        status="pending",
+        created_at=datetime.now()
+    )
+
+    db.add(booking)
+    await db.commit()
+    await db.refresh(booking)
+    return booking
+
+
+async def get_user_bookings(db: AsyncSession, user_id: int) -> List[Booking]:
+    """Get all bookings for a user"""
+    result = await db.execute(
+        select(Booking)
+        .where(Booking.user_id == user_id)
+        .order_by(desc(Booking.created_at))
+    )
+    return result.scalars().all()
+
+
+async def get_booking(db: AsyncSession, booking_id: int) -> Optional[Booking]:
+    """Get a booking by ID"""
+    result = await db.execute(select(Booking).where(Booking.id == booking_id))
+    return result.scalars().first()
+
+
+async def cancel_booking(db: AsyncSession, booking_id: int) -> Optional[Booking]:
+    """Cancel a booking"""
+    booking = await get_booking(db, booking_id)
+    if not booking:
+        return None
+
+    booking.status = "cancelled"
+    await db.commit()
+    await db.refresh(booking)
+    return booking
+
+
+async def calculate_booking_price(db: AsyncSession, room_id: int,
+                                  check_in: str, check_out: str) -> Dict[str, Any]:
+    """Calculate the total price for a booking"""
+    room = await get_room(db, room_id)
+    if not room:
+        raise ValueError("Room not found")
+
+    check_in_date = datetime.strptime(check_in, "%Y-%m-%d").date()
+    check_out_date = datetime.strptime(check_out, "%Y-%m-%d").date()
+
+    nights = (check_out_date - check_in_date).days
     if nights <= 0:
         raise ValueError("Check-out date must be after check-in date")
 
-    total_price = room["price"] * nights
+    total_price = room.price * nights
 
-    return {"total_price": total_price, "nights": nights}
-
-
-async def create_booking(telegram_id, room_id, check_in, check_out, guests, phone=None):
-    # Create a new booking
-    # In a real implementation, this would save to database
-
-    # Calculate price first
-    price_info = await calculate_booking_price(room_id, check_in, check_out)
-
-    # Create booking object (simulated)
-    booking = {
-        "id": 12345,  # Would be generated by the database
-        "telegram_id": telegram_id,
-        "room_id": room_id,
-        "check_in": check_in,
-        "check_out": check_out,
-        "guests": guests,
-        "phone": phone,
-        "total_price": price_info["total_price"],
-        "status": "pending"
+    return {
+        "total_price": total_price,
+        "nights": nights,
+        "room_price": room.price,
+        "room_name": room.name
     }
 
-    return booking
+
+async def check_room_availability(db: AsyncSession, room_id: int,
+                                  check_in: str, check_out: str) -> bool:
+    """Check if a room is available for the given dates"""
+    check_in_date = datetime.strptime(check_in, "%Y-%m-%d").date()
+    check_out_date = datetime.strptime(check_out, "%Y-%m-%d").date()
+
+    # Check for overlapping bookings
+    result = await db.execute(
+        select(Booking).where(
+            and_(
+                Booking.room_id == room_id,
+                Booking.status != "cancelled",
+                or_(
+                    # New check-in date is during an existing booking
+                    and_(
+                        Booking.check_in <= check_in_date,
+                        Booking.check_out > check_in_date
+                    ),
+                    # New check-out date is during an existing booking
+                    and_(
+                        Booking.check_in < check_out_date,
+                        Booking.check_out >= check_out_date
+                    ),
+                    # New booking completely encompasses an existing booking
+                    and_(
+                        Booking.check_in >= check_in_date,
+                        Booking.check_out <= check_out_date
+                    )
+                )
+            )
+        )
+    )
+
+    # If any overlapping booking exists, the room is not available
+    return result.scalars().first() is None
+
+
+# Statistics and dashboard functions
+async def get_booking_stats(db: AsyncSession) -> Dict[str, Any]:
+    """Get booking statistics"""
+    # Total bookings
+    total_bookings_result = await db.execute(select(func.count(Booking.id)))
+    total_bookings = total_bookings_result.scalar_one()
+
+    # Active bookings (pending or confirmed)
+    active_bookings_result = await db.execute(
+        select(func.count(Booking.id))
+        .where(Booking.status.in_(["pending", "confirmed"]))
+    )
+    active_bookings = active_bookings_result.scalar_one()
+
+    # Total revenue
+    revenue_result = await db.execute(
+        select(func.sum(Booking.total_price))
+        .where(Booking.status != "cancelled")
+    )
+    total_revenue = revenue_result.scalar_one() or 0
+
+    return {
+        "total_bookings": total_bookings,
+        "active_bookings": active_bookings,
+        "cancelled_bookings": total_bookings - active_bookings,
+        "total_revenue": total_revenue
+    }
+
+# These functions can be uncommented and implemented if needed:
+# async def get_popular_rooms(db: AsyncSession) -> List[Tuple[Room, int]]:
+#     """Get most booked rooms"""
+#     pass
+
+# async def update_room(db: AsyncSession, room_id: int, **kwargs) -> Optional[Room]:
+#     """Update room details"""
+#     pass
+
+# async def add_room(db: AsyncSession, name: str, description: str, price: float, 
+#                  capacity: int, image_url: Optional[str] = None) -> Room:
+#     """Add a new room"""
+#     pass
