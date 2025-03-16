@@ -4,7 +4,8 @@ from db_config import get_safe_database_url
 
 # Load .env file
 load_dotenv()
-
+# In app/config.py
+WEBHOOK_URL = "https://web-production-1c8d.up.railway.app/webhook"
 # Telegram Bot configuration
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")

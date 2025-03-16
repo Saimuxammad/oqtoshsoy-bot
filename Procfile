@@ -1,1 +1,1 @@
-web: gunicorn -k uvicorn.workers.UvicornWorker main:app
+web: uvicorn asgi:asgi_app --host 0.0.0.0 --port $PORT
