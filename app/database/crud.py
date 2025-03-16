@@ -1,73 +1,69 @@
-from sqlalchemy.orm import Session
-from app.database.models import User, Room, Booking, Review
-import datetime
+async def get_all_rooms():
+    # Return list of rooms with basic info
+    # Example:
+    return [
+        {"id": 1, "name": "Стандартный номер", "description": "Уютный стандартный номер с видом на горы.",
+         "price": 3000, "image_url": "/static/images/standard.jpg"},
+        {"id": 2, "name": "Люкс", "description": "Просторный номер люкс с отдельной гостиной.", "price": 5000,
+         "image_url": "/static/images/luxury.jpg"},
+        {"id": 3, "name": "Семейный номер", "description": "Большой номер для всей семьи.", "price": 7000,
+         "image_url": "/static/images/family.jpg"},
+        {"id": 4, "name": "Президентский люкс", "description": "Наш лучший номер с панорамным видом.", "price": 12000,
+         "image_url": "/static/images/presidential.jpg"}
+    ]
 
-# Функции для работы с пользователями
-def get_user_by_telegram_id(db: Session, telegram_id: int):
-    return db.query(User).filter(User.telegram_id == telegram_id).first()
 
-def create_user(db: Session, telegram_id: int, username: str = None, full_name: str = None):
-    db_user = User(telegram_id=telegram_id, username=username, full_name=full_name)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+async def get_user_bookings(user_id):
+    # Return bookings for specific user
+    # Example:
+    return [
+        {"id": 1, "room_name": "Стандартный номер", "check_in": "2025-04-01", "check_out": "2025-04-03", "guests": 2,
+         "total_price": 6000, "status": "confirmed"}
+    ]
 
-def update_user_phone(db: Session, telegram_id: int, phone_number: str):
-    db_user = get_user_by_telegram_id(db, telegram_id)
-    if db_user:
-        db_user.phone_number = phone_number
-        db.commit()
-        db.refresh(db_user)
-    return db_user
 
-# Функции для работы с номерами
-def get_all_rooms(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Room).offset(skip).limit(limit).all()
+async def calculate_booking_price(room_id, check_in, check_out):
+    # Calculate total price for a booking
+    from datetime import datetime
 
-def get_room(db: Session, room_id: int):
-    return db.query(Room).filter(Room.id == room_id).first()
+    # Find room price
+    rooms = await get_all_rooms()
+    room = next((r for r in rooms if r["id"] == room_id), None)
+    if not room:
+        raise ValueError("Room not found")
 
-def get_available_rooms(db: Session, check_in: datetime.datetime, check_out: datetime.datetime):
-    # Сложный запрос для получения доступных номеров в заданном диапазоне дат
-    # Здесь можно использовать более сложную логику с фильтрацией по существующим бронированиям
-    return db.query(Room).filter(Room.is_available == True).all()
+    # Calculate number of nights
+    date_format = "%Y-%m-%d"
+    check_in_date = datetime.strptime(check_in, date_format)
+    check_out_date = datetime.strptime(check_out, date_format)
+    nights = (check_out_date - check_in_date).days
 
-# Функции для работы с бронированиями
-def create_booking(db: Session, user_id: int, room_id: int,
-                   check_in_date: datetime.datetime, check_out_date: datetime.datetime,
-                   guests_count: int, total_price: float):
-    db_booking = Booking(
-        user_id=user_id,
-        room_id=room_id,
-        check_in_date=check_in_date,
-        check_out_date=check_out_date,
-        guests_count=guests_count,
-        total_price=total_price
-    )
-    db.add(db_booking)
-    db.commit()
-    db.refresh(db_booking)
-    return db_booking
+    if nights <= 0:
+        raise ValueError("Check-out date must be after check-in date")
 
-def get_user_bookings(db: Session, user_id: int):
-    return db.query(Booking).filter(Booking.user_id == user_id).all()
+    total_price = room["price"] * nights
 
-def update_booking_status(db: Session, booking_id: int, status: str):
-    db_booking = db.query(Booking).filter(Booking.id == booking_id).first()
-    if db_booking:
-        db_booking.status = status
-        db.commit()
-        db.refresh(db_booking)
-    return db_booking
+    return {"total_price": total_price, "nights": nights}
 
-# Функции для работы с отзывами
-def create_review(db: Session, user_id: int, room_id: int, rating: int, comment: str = None):
-    db_review = Review(user_id=user_id, room_id=room_id, rating=rating, comment=comment)
-    db.add(db_review)
-    db.commit()
-    db.refresh(db_review)
-    return db_review
 
-def get_room_reviews(db: Session, room_id: int):
-    return db.query(Review).filter(Review.room_id == room_id).all()
+async def create_booking(telegram_id, room_id, check_in, check_out, guests, phone=None):
+    # Create a new booking
+    # In a real implementation, this would save to database
+
+    # Calculate price first
+    price_info = await calculate_booking_price(room_id, check_in, check_out)
+
+    # Create booking object (simulated)
+    booking = {
+        "id": 12345,  # Would be generated by the database
+        "telegram_id": telegram_id,
+        "room_id": room_id,
+        "check_in": check_in,
+        "check_out": check_out,
+        "guests": guests,
+        "phone": phone,
+        "total_price": price_info["total_price"],
+        "status": "pending"
+    }
+
+    return booking

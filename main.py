@@ -95,9 +95,73 @@ async def webhook(request: Request):
 async def root():
     return {"status": "ok", "message": "Oqtoshsoy Hotel Bot API is running"}
 
+@app.get("/app")
+async def webapp():
+    return FileResponse("app/web/templates/index.html")
 
 # Entry point for server startup
 if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("main:app", host=HOST, port=PORT, reload=True)
+
+from fastapi import Form, HTTPException
+from app.database import crud
+
+
+@app.get("/api/rooms")
+async def get_rooms():
+    try:
+        # Get room data from database
+        rooms = await crud.get_all_rooms()
+        return {"success": True, "rooms": rooms}
+    except Exception as e:
+        logger.error(f"Error getting rooms: {e}")
+        return {"success": False, "detail": str(e)}
+
+
+@app.get("/api/user/{user_id}/bookings")
+async def get_user_bookings(user_id: int):
+    try:
+        # Get user bookings from database
+        bookings = await crud.get_user_bookings(user_id)
+        return {"success": True, "bookings": bookings}
+    except Exception as e:
+        logger.error(f"Error getting bookings: {e}")
+        return {"success": False, "detail": str(e)}
+
+
+@app.post("/api/calculate-price")
+async def calculate_price(request: Request):
+    try:
+        form_data = await request.form()
+        room_id = int(form_data.get("room_id"))
+        check_in = form_data.get("check_in")
+        check_out = form_data.get("check_out")
+        guests = int(form_data.get("guests"))
+
+        # Calculate booking price
+        price_info = await crud.calculate_booking_price(room_id, check_in, check_out)
+        return {"success": True, "price": price_info["total_price"], "nights": price_info["nights"]}
+    except Exception as e:
+        logger.error(f"Error calculating price: {e}")
+        return {"success": False, "detail": str(e)}
+
+
+@app.post("/api/book")
+async def create_booking(request: Request):
+    try:
+        form_data = await request.form()
+        telegram_id = int(form_data.get("telegram_id"))
+        room_id = int(form_data.get("room_id"))
+        check_in = form_data.get("check_in")
+        check_out = form_data.get("check_out")
+        guests = int(form_data.get("guests"))
+        phone = form_data.get("phone")
+
+        # Create booking in database
+        booking = await crud.create_booking(telegram_id, room_id, check_in, check_out, guests, phone)
+        return {"success": True, "booking_id": booking.id}
+    except Exception as e:
+        logger.error(f"Error creating booking: {e}")
+        return {"success": False, "detail": str(e)}
