@@ -212,6 +212,23 @@ async def check_room_availability(db: AsyncSession, room_id: int,
     return result.scalars().first() is None
 
 
+async def get_available_rooms(db: AsyncSession, check_in: str, check_out: str) -> List[Room]:
+    """Get rooms available for the given dates"""
+    check_in_date = datetime.strptime(check_in, "%Y-%m-%d").date()
+    check_out_date = datetime.strptime(check_out, "%Y-%m-%d").date()
+
+    # Get all rooms
+    all_rooms = await get_all_rooms(db)
+
+    # Filter out rooms that have overlapping bookings
+    available_rooms = []
+    for room in all_rooms:
+        is_available = await check_room_availability(db, room.id, check_in, check_out)
+        if is_available:
+            available_rooms.append(room)
+
+    return available_rooms
+
 # Statistics and dashboard functions
 async def get_booking_stats(db: AsyncSession) -> Dict[str, Any]:
     """Get booking statistics"""
