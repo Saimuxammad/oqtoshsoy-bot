@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-
+from aiogram.types import Update
 from app.config import BOT_TOKEN, HOST, PORT, WEBHOOK_URL
 from app.database import init_db
 from app.bot.handlers import router as bot_router
@@ -86,7 +86,13 @@ app.include_router(web_router, prefix="")
 @app.post("/webhook")
 async def webhook(request: Request):
     update_data = await request.json()
-    await dp.feed_webhook_update(bot, update_data)
+
+    # Convert dict to Update object
+    update = Update.model_validate(update_data)
+
+    # Process the update
+    await dp.feed_update(bot, update)
+
     return Response(status_code=200)
 
 
