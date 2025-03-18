@@ -41,7 +41,7 @@ async def get_or_create_user(db: AsyncSession, telegram_id: int, username: Optio
 # Room-related functions
 async def get_all_rooms(db: AsyncSession) -> List[Room]:
     """Get all available rooms"""
-    result = await db.execute(select(Room).order_by(Room.price))
+    result = await db.execute(select(Room).order_by(Room.price_per_night))
     return result.scalars().all()
 
 
@@ -102,7 +102,7 @@ async def create_booking(db: AsyncSession, user_id: int, room_id: int,
 
     # Calculate nights and total price
     nights = (check_out_date - check_in_date).days
-    total_price = room.price * nights
+    total_price = room.price_per_night * nights
 
     # Create booking
     booking = Booking(
@@ -165,12 +165,12 @@ async def calculate_booking_price(db: AsyncSession, room_id: int,
     if nights <= 0:
         raise ValueError("Check-out date must be after check-in date")
 
-    total_price = room.price * nights
+    total_price = room.price_per_night * nights
 
     return {
         "total_price": total_price,
         "nights": nights,
-        "room_price": room.price,
+        "room_price": room.price_per_night,
         "room_name": room.name
     }
 
@@ -229,6 +229,7 @@ async def get_available_rooms(db: AsyncSession, check_in: str, check_out: str) -
 
     return available_rooms
 
+
 # Statistics and dashboard functions
 async def get_booking_stats(db: AsyncSession) -> Dict[str, Any]:
     """Get booking statistics"""
@@ -256,17 +257,3 @@ async def get_booking_stats(db: AsyncSession) -> Dict[str, Any]:
         "cancelled_bookings": total_bookings - active_bookings,
         "total_revenue": total_revenue
     }
-
-# These functions can be uncommented and implemented if needed:
-# async def get_popular_rooms(db: AsyncSession) -> List[Tuple[Room, int]]:
-#     """Get most booked rooms"""
-#     pass
-
-# async def update_room(db: AsyncSession, room_id: int, **kwargs) -> Optional[Room]:
-#     """Update room details"""
-#     pass
-
-# async def add_room(db: AsyncSession, name: str, description: str, price: float, 
-#                  capacity: int, image_url: Optional[str] = None) -> Room:
-#     """Add a new room"""
-#     pass

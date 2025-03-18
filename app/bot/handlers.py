@@ -83,7 +83,7 @@ async def room_details(callback: CallbackQuery, session: AsyncSession):
         f"🛏️ *{room.name}*\n\n"
         f"*Тип*: {room.room_type}\n"
         f"*Вместимость*: {room.capacity} чел.\n"
-        f"*Цена за ночь*: {room.price}₽\n\n"
+        f"*Цена за ночь*: {room.price_per_night}₽\n\n"  # Use price_per_night
         f"{room.description}\n\n"
         f"Для бронирования нажмите кнопку ниже."
     )
