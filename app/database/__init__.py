@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 # Get safe database URL
 DATABASE_URL = get_safe_database_url()
 
+# Create base class for models
+Base = declarative_base()
+
 # Check if we can use async SQLAlchemy
 try:
     from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -44,13 +47,22 @@ try:
             )
 
             # Create async session factory
-            SessionLocal = sessionmaker(
+            AsyncSessionLocal = sessionmaker(
                 engine,
                 class_=AsyncSession,
                 expire_on_commit=False
             )
 
+            # Export session factory as SessionLocal
+            SessionLocal = AsyncSessionLocal
+
             logger.info("Async database engine initialized successfully")
+
+
+            async def get_db():
+                """Dependency for database session"""
+                async with AsyncSessionLocal() as session:
+                    yield session
 
 
             async def init_db():
@@ -73,6 +85,8 @@ try:
 
     # Use synchronous engine if async not available
     if not USE_ASYNC:
+        from sqlalchemy import create_engine
+
         # Create synchronous engine
         engine = create_engine(
             DATABASE_URL,
@@ -80,9 +94,21 @@ try:
         )
 
         # Create sync session factory
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+        # Export session factory as SessionLocal
+        SessionLocal = SyncSessionLocal
 
         logger.info("Synchronous database engine initialized successfully")
+
+
+        def get_db():
+            """Dependency for database session"""
+            db = SessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
 
 
         def init_db():
@@ -108,10 +134,16 @@ except Exception as e:
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+    def get_db():
+        """Dependency for database session"""
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+
     def init_db():
         Base.metadata.create_all(bind=engine)
         logger.info("Fallback database tables created successfully")
         return True
-
-# Create base class for models
-Base = declarative_base()
