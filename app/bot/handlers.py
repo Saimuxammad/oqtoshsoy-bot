@@ -2,10 +2,13 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.keyboards import main_keyboard, rooms_keyboard, room_detail_keyboard, support_keyboard
-from app.database.crud import get_user_by_telegram_id, create_user, get_all_rooms, get_room, get_room_reviews
+from app.database.crud import (
+    get_user_by_telegram_id, create_user, get_all_rooms,
+    get_room, get_room_reviews, get_or_create_user
+)
 from app.database.models import User
 
 router = Router()
@@ -13,18 +16,15 @@ router = Router()
 
 # Handler for /start command
 @router.message(Command("start"))
-async def cmd_start(message: Message, session: Session):
-    # Check if user exists in the database
-    user = get_user_by_telegram_id(session, message.from_user.id)
-
-    # If user doesn't exist, create a new one
-    if not user:
-        user = create_user(
-            session,
-            telegram_id=message.from_user.id,
-            username=message.from_user.username,
-            full_name=message.from_user.full_name
-        )
+async def cmd_start(message: Message, session: AsyncSession):
+    # Check if user exists in the database or create a new one
+    user = await get_or_create_user(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name
+    )
 
     await message.answer(
         f"👋 Здравствуйте, {message.from_user.first_name}!\n\n"
@@ -58,14 +58,8 @@ async def about_resort(message: Message):
 # Handler for "Rooms" button
 @router.message(F.text == "🛏️ Номера")
 async def show_rooms(message: Message, session: AsyncSession):
-    # Get rooms - ADD THE AWAIT HERE
+    # Get rooms with await
     rooms = await get_all_rooms(session)
-
-    # Then show the rooms
-    await message.answer(
-        "Выберите номер для просмотра:",
-        reply_markup=rooms_keyboard(rooms),
-    )
 
     await message.answer(
         "🛏️ *Выберите категорию номера для подробной информации:*",
@@ -76,9 +70,9 @@ async def show_rooms(message: Message, session: AsyncSession):
 
 # Handler for room selection
 @router.callback_query(lambda c: c.data and c.data.startswith("room_"))
-async def room_details(callback: CallbackQuery, session: Session):
+async def room_details(callback: CallbackQuery, session: AsyncSession):
     room_id = int(callback.data.split("_")[1])
-    room = get_room(session, room_id)
+    room = await get_room(session, room_id)
 
     if not room:
         await callback.answer("Номер не найден")
@@ -89,7 +83,7 @@ async def room_details(callback: CallbackQuery, session: Session):
         f"🛏️ *{room.name}*\n\n"
         f"*Тип*: {room.room_type}\n"
         f"*Вместимость*: {room.capacity} чел.\n"
-        f"*Цена за ночь*: {room.price_per_night}₽\n\n"
+        f"*Цена за ночь*: {room.price}₽\n\n"
         f"{room.description}\n\n"
         f"Для бронирования нажмите кнопку ниже."
     )
@@ -125,7 +119,7 @@ async def contact_support(message: Message):
 
 # Handler for "Reviews" button
 @router.message(F.text == "⭐ Отзывы")
-async def show_reviews(message: Message):
+async def show_reviews(message: Message, session: AsyncSession):
     await message.answer(
         "⭐ *Отзывы о курорте*\n\n"
         "Здесь вы можете прочитать отзывы наших гостей или оставить свой отзыв.\n\n"
