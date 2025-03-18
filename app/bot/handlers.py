@@ -57,11 +57,15 @@ async def about_resort(message: Message):
 
 # Handler for "Rooms" button
 @router.message(F.text == "🛏️ Номера")
-async def show_rooms(message: Message, session: Session):
-    rooms = get_all_rooms(session)
-    if not rooms:
-        await message.answer("К сожалению, сейчас нет доступных номеров. Пожалуйста, попробуйте позже.")
-        return
+async def show_rooms(message: Message, session: AsyncSession):
+    # Get rooms - ADD THE AWAIT HERE
+    rooms = await get_all_rooms(session)
+
+    # Then show the rooms
+    await message.answer(
+        "Выберите номер для просмотра:",
+        reply_markup=rooms_keyboard(rooms),
+    )
 
     await message.answer(
         "🛏️ *Выберите категорию номера для подробной информации:*",
