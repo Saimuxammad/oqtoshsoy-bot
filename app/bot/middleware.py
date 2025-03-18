@@ -1,9 +1,7 @@
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import Message, CallbackQuery
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import AsyncSessionLocal
-
+from app.database import SessionLocal, USE_ASYNC
 
 class DatabaseMiddleware(BaseMiddleware):
     async def __call__(
@@ -12,12 +10,16 @@ class DatabaseMiddleware(BaseMiddleware):
             event: Message | CallbackQuery,
             data: Dict[str, Any]
     ) -> Any:
-        # Create a database session for this request using async context manager
-        async with AsyncSessionLocal() as session:
-            # Add session to data
+        if USE_ASYNC:
+            # Use async session
+            async with SessionLocal() as session:
+                data["session"] = session
+                return await handler(event, data)
+        else:
+            # Use sync session
+            session = SessionLocal()
             data["session"] = session
-
-            # Pass control to the handler
-            return await handler(event, data)
-
-        # Session automatically closed when exiting context manager
+            try:
+                return await handler(event, data)
+            finally:
+                session.close()
