@@ -13,14 +13,15 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     telegram_id = Column(Integer, unique=True, nullable=False)
     username = Column(String(255), nullable=True)
-    full_name = Column(String(255), nullable=True)
-    phone_number = Column(String(20), nullable=True)
+    first_name = Column(String(255), nullable=True)
+    last_name = Column(String(255), nullable=True)
+    phone = Column(String(20), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     bookings = relationship("Booking", back_populates="user")
 
     def __repr__(self):
-        return f"<User {self.full_name}>"
+        return f"<User {self.first_name} {self.last_name}>"
 
 
 class Room(Base):
@@ -48,12 +49,13 @@ class Booking(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
-    check_in_date = Column(DateTime, nullable=False)
-    check_out_date = Column(DateTime, nullable=False)
-    guests_count = Column(Integer, default=1)
+    check_in = Column(DateTime, nullable=False)
+    check_out = Column(DateTime, nullable=False)
+    guests = Column(Integer, default=1)
     total_price = Column(Float, nullable=False)
     status = Column(String(20), default="pending")  # pending, confirmed, cancelled
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    phone = Column(String(20), nullable=True)
 
     user = relationship("User", back_populates="bookings")
     room = relationship("Room", back_populates="bookings")

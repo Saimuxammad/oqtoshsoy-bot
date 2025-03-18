@@ -42,6 +42,7 @@ async def get_or_create_user(db: AsyncSession, telegram_id: int, username: Optio
 async def get_all_rooms(db: AsyncSession) -> List[Room]:
     """Get all available rooms"""
     result = await db.execute(select(Room).order_by(Room.price_per_night))
+    # Don't use await here - just return the scalars directly
     return result.scalars().all()
 
 
