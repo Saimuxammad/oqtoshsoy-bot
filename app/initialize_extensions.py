@@ -14,7 +14,7 @@ from app.database.init_admins import init_admin_users
 from app.database.seed_services import seed_additional_services
 from app.database.room_updates import update_room_model
 from app.web.additional_routes import router as additional_router
-from app.bot.additional_handlers import register_additional_handlers
+from app.bot.register_handlers import register_additional_handlers
 
 logger = logging.getLogger(__name__)
 
