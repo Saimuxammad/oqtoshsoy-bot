@@ -36,6 +36,16 @@ class Room(Base):
     is_available = Column(Boolean, default=True)
     image_url = Column(String(500), nullable=True)
 
+    # Добавляем новые поля
+    photos = Column(Text, nullable=True)  # JSON-массив URL фотографий
+    video_url = Column(String(500), nullable=True)
+    amenities = Column(Text, nullable=True)  # JSON-массив удобств в номере
+    price_with_food = Column(Float, nullable=True)
+    price_without_food_weekday = Column(Float, nullable=True)
+    price_without_food_weekend = Column(Float, nullable=True)
+    check_in_time = Column(String(50), default="14:00", nullable=True)
+    check_out_time = Column(String(50), default="12:00", nullable=True)
+
     bookings = relationship("Booking", back_populates="room")
     reviews = relationship("Review", back_populates="room")
 
@@ -79,11 +89,3 @@ class Review(Base):
 
     def __repr__(self):
         return f"<Review {self.id} - {self.rating}>"
-
-# Добавьте в app/database/models.py новые поля:
-class Room(Base):
-    # ...существующие поля...
-    photos = Column(Text)  # JSON-массив URL фотографий
-    video_url = Column(String(500), nullable=True)
-    amenities = Column(Text)  # JSON-массив удобств в номере
-    # ...
