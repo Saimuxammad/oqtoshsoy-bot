@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Float, Text
-from app.database.models import Room
+from app.database.additional_models import Room
 import json
 from typing import List
 

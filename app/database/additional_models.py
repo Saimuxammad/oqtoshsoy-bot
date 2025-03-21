@@ -5,7 +5,7 @@ import json
 from typing import List, Dict, Any, Optional
 
 # Импортируем Base и существующую модель Room
-from app.database.models import Base, Room
+from app.database.fixed_models import Base, Room
 
 # Модель для дополнительных услуг
 class AdditionalService(Base):
