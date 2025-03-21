@@ -80,15 +80,16 @@ def init_admin_users():
         finally:
             db.close()
 
-        except Exception as e:
+    except Exception as e:
         logger.error(f"Error parsing admin IDs: {e}")
 
-    if __name__ == "__main__":
-        try:
-            # Инициализируем базу данных
-            init_db()
 
-            # Инициализируем администраторов
-            init_admin_users()
-        except Exception as e:
-            logger.error(f"Error in init_admins.py: {e}")
+if __name__ == "__main__":
+    try:
+        # Инициализируем базу данных
+        init_db()
+
+        # Инициализируем администраторов
+        init_admin_users()
+    except Exception as e:
+        logger.error(f"Error in init_admins.py: {e}")
