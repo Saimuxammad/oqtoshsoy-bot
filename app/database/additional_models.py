@@ -4,8 +4,8 @@ import datetime
 import json
 from typing import List, Dict, Any, Optional
 
-# Используем существующий Base из app.database
-from app.database.models import Base
+# Импортируем Base и существующую модель Room
+from app.database.models import Base, Room
 
 # Модель для дополнительных услуг
 class AdditionalService(Base):
@@ -103,3 +103,39 @@ class Payment(Base):
     def set_details(self, details: Dict[str, Any]) -> None:
         """Установить детали платежа"""
         self.details = json.dumps(details)
+
+
+# Вспомогательные методы для работы с существующей моделью Room
+def get_photos(room: Room) -> List[str]:
+    """Получить список URL фотографий"""
+    if not hasattr(room, 'photos') or not room.photos:
+        return []
+    try:
+        return json.loads(room.photos)
+    except:
+        return []
+
+def set_photos(room: Room, photo_urls: List[str]) -> None:
+    """Установить список URL фотографий"""
+    if hasattr(room, 'photos'):
+        room.photos = json.dumps(photo_urls)
+
+def get_amenities(room: Room) -> List[str]:
+    """Получить список удобств"""
+    if not hasattr(room, 'amenities') or not room.amenities:
+        return []
+    try:
+        return json.loads(room.amenities)
+    except:
+        return []
+
+def set_amenities(room: Room, amenities_list: List[str]) -> None:
+    """Установить список удобств"""
+    if hasattr(room, 'amenities'):
+        room.amenities = json.dumps(amenities_list)
+
+# Добавляем эти методы к классу Room
+Room.get_photos = get_photos
+Room.set_photos = set_photos
+Room.get_amenities = get_amenities
+Room.set_amenities = set_amenities
