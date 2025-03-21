@@ -17,7 +17,7 @@ from app.bot.additional_keyboards import (
 from app.database.crud import (
     get_user_by_telegram_id, get_or_create_user
 )
-from app.database.fixed_models import AdditionalService, ServiceBooking, BotAdmin, Payment
+from app.database.additional_models import AdditionalService, ServiceBooking, BotAdmin, Payment
 from app.database.additional_crud import (
     get_all_services, get_available_services, get_service, create_service_booking,
     check_service_availability, get_user_service_bookings, get_service_booking,
