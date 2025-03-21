@@ -17,6 +17,9 @@ from app.bot.handlers import router as bot_router
 from app.bot.middleware import DatabaseMiddleware
 from app.web.routes import router as web_router
 
+# Импортируем функцию инициализации дополнений
+from app.initialize_extensions import initialize_extensions, check_database_tables
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -84,6 +87,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Include web router
 app.include_router(web_router, prefix="")
 
+# Initialize extensions
+initialize_extensions(app, dp)
+
+# Check database tables
+check_database_tables()
 
 # Webhook route handler for Telegram updates
 @app.post("/webhook")

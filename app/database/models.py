@@ -79,3 +79,11 @@ class Review(Base):
 
     def __repr__(self):
         return f"<Review {self.id} - {self.rating}>"
+
+# Добавьте в app/database/models.py новые поля:
+class Room(Base):
+    # ...существующие поля...
+    photos = Column(Text)  # JSON-массив URL фотографий
+    video_url = Column(String(500), nullable=True)
+    amenities = Column(Text)  # JSON-массив удобств в номере
+    # ...

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Календарь занятости - Курорт Oqtoshsoy</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-text-color: #222222;
+            --tg-theme-hint-color: #999999;
+            --tg-theme-link-color: #2678b6;
+            --tg-theme-button-color: #2678b6;
+            --tg-theme-button-text-color: #ffffff;
+        }
+
+        body {
+            background-color: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .btn-primary {
+            background-color: var(--tg-theme-button-color);
+            border-color: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+        }
+
+        .fc-event {
+            cursor: pointer;
+        }
+
+        .room-selector {
+            margin-bottom: 20px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        /* Custom colors for different room types */
+        .event-standard { background-color: #4CAF50; }
+        .event-luxury { background-color: #2196F3; }
+        .event-vip { background-color: #9C27B0; }
+        .event-apartment { background-color: #FF9800; }
+        .event-cottage { background-color: #795548; }
+        .event-presidential { background-color: #F44336; }
+
+        /* Custom colors for different event statuses */
+        .event-pending { opacity: 0.7; }
+        .event-confirmed { opacity: 1; }
+        .event-cancelled { text-decoration: line-through; opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2 class="mb-4">Календарь занятости номеров</h2>
+
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        Фильтры
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Выберите номер:</label>
+                            <select id="roomSelector" class="form-select">
+                                <option value="all">Все номера</option>
+                                <!-- Опции будут добавлены через JavaScript -->
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Статус бронирования:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="statusPending" checked>
+                                <label class="form-check-label" for="statusPending">
+                                    Ожидает подтверждения
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="statusConfirmed" checked>
+                                <label class="form-check-label" for="statusConfirmed">
+                                    Подтверждено
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="statusCancelled">
+                                <label class="form-check-label" for="statusCancelled">
+                                    Отменено
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Период:</label>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">От</span>
+                                <input type="date" id="startDateFilter" class="form-control">
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text">До</span>
+                                <input type="date" id="endDateFilter" class="form-control">
+                            </div>
+                        </div>
+
+                        <button id="applyFilters" class="btn btn-primary w-100">Применить фильтры</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        Легенда
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="event-standard" style="width: 20px; height: 20px; margin-right: 10px;"></div>
+                            <div>Стандарт</div>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="event-luxury" style="width: 20px; height: 20px; margin-right: 10px;"></div>
+                            <div>Люкс</div>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="event-vip" style="width: 20px; height: 20px; margin-right: 10px;"></div>
+                            <div>VIP</div>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="event-apartment" style="width: 20px; height: 20px; margin-right: 10px;"></div>
+                            <div>Апартамент</div>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="event-cottage" style="width: 20px; height: 20px; margin-right: 10px;"></div>
+                            <div>Коттедж</div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="event-presidential" style="width: 20px; height: 20px; margin-right: 10px;"></div>
+                            <div>Президентский</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для деталей бронирования -->
+    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookingModalLabel">Детали бронирования</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="bookingModalBody">
+                    <!-- Содержимое будет добавлено через JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-primary" id="confirmBookingBtn">Подтвердить</button>
+                    <button type="button" class="btn btn-danger" id="cancelBookingBtn">Отменить бронирование</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/locales/ru.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Инициализация Telegram WebApp
+            const tgApp = window.Telegram.WebApp;
+            tgApp.expand();
+            tgApp.ready();
+
+            // Установка цветов темы Telegram
+            document.documentElement.style.setProperty('--tg-theme-bg-color', tgApp.themeParams.bg_color);
+            document.documentElement.style.setProperty('--tg-theme-text-color', tgApp.themeParams.text_color);
+            document.documentElement.style.setProperty('--tg-theme-hint-color', tgApp.themeParams.hint_color);
+            document.documentElement.style.setProperty('--tg-theme-link-color', tgApp.themeParams.link_color);
+            document.documentElement.style.setProperty('--tg-theme-button-color', tgApp.themeParams.button_color);
+            document.documentElement.style.setProperty('--tg-theme-button-text-color', tgApp.themeParams.button_text_color);
+
+            // Показать/скрыть индикатор загрузки
+            function toggleLoading(show) {
+                document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+            }
+
+            // Функция для отображения сообщения об ошибке
+            function showError(message) {
+                tgApp.showAlert(message);
+            }
+
+            // Инициализация календаря
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ru',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                events: [], // События будут добавлены позже
+                eventClick: function(info) {
+                    showBookingDetails(info.event.extendedProps.bookingId);
+                },
+                eventDisplay: 'block',
+                displayEventTime: false
+            });
+            calendar.render();
+
+            // Загрузка списка номеров
+            async function loadRooms() {
+                toggleLoading(true);
+                try {
+                    const response = await fetch('/api/rooms');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const roomSelector = document.getElementById('roomSelector');
+
+                        data.rooms.forEach(room => {
+                            const option = document.createElement('option');
+                            option.value = room.id;
+                            option.textContent = room.name;
+                            roomSelector.appendChild(option);
+                        });
+                    } else {
+                        showError('Не удалось загрузить список номеров');
+                    }
+                } catch (error) {
+                    console.error('Error loading rooms:', error);
+                    showError('Произошла ошибка при загрузке данных');
+                } finally {
+                    toggleLoading(false);
+                }
+            }
+
+            // Загрузка бронирований для календаря
+            async function loadBookings() {
+                toggleLoading(true);
+
+                // Получаем выбранные фильтры
+                const roomId = document.getElementById('roomSelector').value;
+                const showPending = document.getElementById('statusPending').checked;
+                const showConfirmed = document.getElementById('statusConfirmed').checked;
+                const showCancelled = document.getElementById('statusCancelled').checked;
+                const startDate = document.getElementById('startDateFilter').value || new Date().toISOString().split('T')[0];
+
+                // Вычисляем дату окончания (через 3 месяца от начала, если не указана)
+                let endDate = document.getElementById('endDateFilter').value;
+                if (!endDate) {
+                    const end = new Date();
+                    end.setMonth(end.getMonth() + 3);
+                    endDate = end.toISOString().split('T')[0];
+                }
+
+                try {
+                    // Формируем URL в зависимости от выбранного номера
+                    let url = `/api/rooms/availability?start_date=${startDate}&end_date=${endDate}`;
+                    if (roomId !== 'all') {
+                        url = `/api/rooms/${roomId}/availability?start_date=${startDate}&end_date=${endDate}`;
+                    }
+
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Очищаем все события
+                        calendar.removeAllEvents();
+
+                        // Обрабатываем полученные данные
+                        if (roomId === 'all') {
+                            // Если выбраны все номера
+                            Object.values(data.rooms).forEach(room => {
+                                addRoomBookingsToCalendar(room.room_id, room.room_name, room.bookings, { showPending, showConfirmed, showCancelled });
+                            });
+                        } else {
+                            // Если выбран конкретный номер
+                            addRoomBookingsToCalendar(data.room_id, data.room_name, data.bookings, { showPending, showConfirmed, showCancelled });
+                        }
+                    } else {
+                        showError('Не удалось загрузить данные о бронированиях');
+                    }
+                } catch (error) {
+                    console.error('Error loading bookings:', error);
+                    showError('Произошла ошибка при загрузке данных');
+                } finally {
+                    toggleLoading(false);
+                }
+            }
+
+            // Добавление бронирований одного номера в календарь
+            function addRoomBookingsToCalendar(roomId, roomName, bookings, filters) {
+                // Определяем класс события в зависимости от типа номера
+                let eventClass = '';
+                if (roomName.toLowerCase().includes('стандарт')) {
+                    eventClass = 'event-standard';
+                } else if (roomName.toLowerCase().includes('люкс')) {
+                    eventClass = 'event-luxury';
+                } else if (roomName.toLowerCase().includes('vip') || roomName.toLowerCase().includes('вип')) {
+                    eventClass = 'event-vip';
+                } else if (roomName.toLowerCase().includes('апартамент')) {
+                    eventClass = 'event-apartment';
+                } else if (roomName.toLowerCase().includes('коттедж')) {
+                    eventClass = 'event-cottage';
+                } else if (roomName.toLowerCase().includes('президент')) {
+                    eventClass = 'event-presidential';
+                }
+
+                // Фильтруем бронирования по статусу
+                const filteredBookings = bookings.filter(booking => {
+                    if (booking.status === 'pending' && !filters.showPending) return false;
+                    if (booking.status === 'confirmed' && !filters.showConfirmed) return false;
+                    if (booking.status === 'cancelled' && !filters.showCancelled) return false;
+                    return true;
+                });
+
+                // Добавляем каждое бронирование как событие в календарь
+                filteredBookings.forEach(booking => {
+                    // Добавляем класс для статуса
+                    const statusClass = `event-${booking.status}`;
+
+                    calendar.addEvent({
+                        title: `${roomName} - ${booking.guest_name}`,
+                        start: booking.check_in,
+                        end: booking.check_out,
+                        className: [eventClass, statusClass],
+                        extendedProps: {
+                            bookingId: booking.booking_id,
+                            roomId: roomId,
+                            status: booking.status,
+                            guestName: booking.guest_name,
+                            guests: booking.guests
+                        }
+                    });
+                });
+            }
+
+            // Показать детали бронирования
+            async function showBookingDetails(bookingId) {
+                toggleLoading(true);
+                try {
+                    const response = await fetch(`/api/bookings/${bookingId}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const booking = data.booking;
+                        const modalBody = document.getElementById('bookingModalBody');
+
+                        // Форматируем статус
+                        let statusText = 'Неизвестно';
+                        let statusClass = '';
+
+                        if (booking.status === 'pending') {
+                            statusText = 'Ожидает подтверждения';
+                            statusClass = 'text-warning';
+                        } else if (booking.status === 'confirmed') {
+                            statusText = 'Подтверждено';
+                            statusClass = 'text-success';
+                        } else if (booking.status === 'cancelled') {
+                            statusText = 'Отменено';
+                            statusClass = 'text-danger';
+                        }
+
+                        // Форматируем даты
+                        const checkIn = new Date(booking.check_in).toLocaleDateString('ru-RU');
+                        const checkOut = new Date(booking.check_out).toLocaleDateString('ru-RU');
+                        const createdAt = new Date(booking.created_at).toLocaleString('ru-RU');
+
+                        // Формируем HTML для модального окна
+                        modalBody.innerHTML = `
+                            <div class="booking-details">
+                                <p><strong>Номер бронирования:</strong> #${booking.id}</p>
+                                <p><strong>Номер:</strong> ${booking.room_name}</p>
+                                <p><strong>Гость:</strong> ${booking.guest_name}</p>
+                                <p><strong>Количество гостей:</strong> ${booking.guests}</p>
+                                <p><strong>Заезд:</strong> ${checkIn}</p>
+                                <p><strong>Выезд:</strong> ${checkOut}</p>
+                                <p><strong>Стоимость:</strong> ${booking.total_price.toLocaleString('ru-RU')} сум</p>
+                                <p><strong>Статус:</strong> <span class="${statusClass}">${statusText}</span></p>
+                                <p><strong>Создано:</strong> ${createdAt}</p>
+                                ${booking.phone ? `<p><strong>Телефон:</strong> ${booking.phone}</p>` : ''}
+                            </div>
+                        `;
+
+                        // Настраиваем кнопки в зависимости от статуса
+                        const confirmBtn = document.getElementById('confirmBookingBtn');
+                        const cancelBtn = document.getElementById('cancelBookingBtn');
+
+                        if (booking.status === 'pending') {
+                            confirmBtn.style.display = 'block';
+                            cancelBtn.style.display = 'block';
+
+                            // Обработчики для кнопок
+                            confirmBtn.onclick = () => confirmBooking(booking.id);
+                            cancelBtn.onclick = () => cancelBooking(booking.id);
+                        } else {
+                            confirmBtn.style.display = 'none';
+
+                            if (booking.status === 'confirmed') {
+                                cancelBtn.style.display = 'block';
+                                cancelBtn.onclick = () => cancelBooking(booking.id);
+                            } else {
+                                cancelBtn.style.display = 'none';
+                            }
+                        }
+
+                        // Показываем модальное окно
+                        new bootstrap.Modal(document.getElementById('bookingModal')).show();
+                    } else {
+                        showError('Не удалось загрузить детали бронирования');
+                    }
+                } catch (error) {
+                    console.error('Error loading booking details:', error);
+                    showError('Произошла ошибка при загрузке данных');
+                } finally {
+                    toggleLoading(false);
+                }
+            }
+
+            // Подтверждение бронирования
+            async function confirmBooking(bookingId) {
+                if (!confirm('Подтвердить это бронирование?')) {
+                    return;
+                }
+
+                toggleLoading(true);
+                try {
+                    const response = await fetch(`/api/bookings/${bookingId}/confirm`, {
+                        method: 'POST'
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Закрываем модальное окно
+                        bootstrap.Modal.getInstance(document.getElementById('bookingModal')).hide();
+
+                        // Показываем сообщение об успешном подтверждении
+                        tgApp.showAlert('Бронирование успешно подтверждено');
+
+                        // Обновляем данные в календаре
+                        loadBookings();
+                    } else {
+                        showError(data.detail || 'Не удалось подтвердить бронирование');
+                    }
+                } catch (error) {
+                    console.error('Error confirming booking:', error);
+                    showError('Произошла ошибка при подтверждении бронирования');
+                } finally {
+                    toggleLoading(false);
+                }
+            }
+
+            // Отмена бронирования
+            async function cancelBooking(bookingId) {
+                if (!confirm('Вы уверены, что хотите отменить это бронирование?')) {
+                    return;
+                }
+
+                toggleLoading(true);
+                try {
+                    const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
+                        method: 'POST'
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Закрываем модальное окно
+                        bootstrap.Modal.getInstance(document.getElementById('bookingModal')).hide();
+
+                        // Показываем сообщение об успешной отмене
+                        tgApp.showAlert('Бронирование успешно отменено');
+
+                        // Обновляем данные в календаре
+                        loadBookings();
+                    } else {
+                        showError(data.detail || 'Не удалось отменить бронирование');
+                    }
+                } catch (error) {
+                    console.error('Error cancelling booking:', error);
+                    showError('Произошла ошибка при отмене бронирования');
+                } finally {
+                    toggleLoading(false);
+                }
+            }
+
+            // Обработчик кнопки применения фильтров
+            document.getElementById('applyFilters').addEventListener('click', loadBookings);
+
+            // Инициализация
+            loadRooms();
+
+            // Устанавливаем текущую дату как начальную для фильтра
+            const today = new Date();
+            document.getElementById('startDateFilter').value = today.toISOString().split('T')[0];
+
+            // Загружаем бронирования после установки фильтров
+            setTimeout(loadBookings, 500);
+        });
+    </script>
+</body>
+</html>
