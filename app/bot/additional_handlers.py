@@ -246,483 +246,496 @@ async def process_calendar_selection(callback: CallbackQuery, state: FSMContext,
 
     await callback.answer()
 
-    @services_router.callback_query(lambda c: c.data and c.data.startswith("time_"),
-                                    ServiceBookingStates.selecting_time)
-    async def process_time_selection(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
-        """Обрабатывает выбор времени бронирования"""
-        time_data = callback.data.split("_")[1:]
-        start_time = time_data[0]
-        end_time = time_data[1]
 
-        await state.update_data(start_time=start_time, end_time=end_time)
+@services_router.callback_query(lambda c: c.data and c.data.startswith("time_"),
+                                ServiceBookingStates.selecting_time)
+async def process_time_selection(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    """Обрабатывает выбор времени бронирования"""
+    time_data = callback.data.split("_")[1:]
+    start_time = time_data[0]
+    end_time = time_data[1]
 
-        # Получаем информацию об услуге
-        data = await state.get_data()
-        service_id = data.get("service_id")
-        service = await get_service(session, service_id)
+    await state.update_data(start_time=start_time, end_time=end_time)
 
-        # Запрашиваем количество гостей
-        max_guests_text = f" (максимум {service.max_capacity})" if service.max_capacity else ""
+    # Получаем информацию об услуге
+    data = await state.get_data()
+    service_id = data.get("service_id")
+    service = await get_service(session, service_id)
 
-        await callback.message.answer(
-            f"Введите количество человек для услуги *{service.name}*{max_guests_text}:",
-            parse_mode="Markdown"
+    # Запрашиваем количество гостей
+    max_guests_text = f" (максимум {service.max_capacity})" if service.max_capacity else ""
+
+    await callback.message.answer(
+        f"Введите количество человек для услуги *{service.name}*{max_guests_text}:",
+        parse_mode="Markdown"
+    )
+
+    await state.set_state(ServiceBookingStates.entering_guests)
+    await callback.answer()
+
+
+@services_router.message(ServiceBookingStates.entering_guests)
+async def process_guests_count(message: Message, state: FSMContext, session: AsyncSession):
+    """Обрабатывает ввод количества гостей"""
+    try:
+        guests = int(message.text.strip())
+        if guests <= 0:
+            raise ValueError("Количество гостей должно быть положительным числом")
+    except ValueError:
+        await message.answer("Пожалуйста, введите корректное число гостей (целое положительное число).")
+        return
+
+    # Получаем информацию об услуге
+    data = await state.get_data()
+    service_id = data.get("service_id")
+    service = await get_service(session, service_id)
+
+    # Проверяем ограничение по количеству гостей
+    if service.max_capacity and guests > service.max_capacity:
+        await message.answer(
+            f"Максимальное количество гостей для этой услуги: {service.max_capacity}.\n"
+            f"Пожалуйста, введите корректное число."
+        )
+        return
+
+    # Сохраняем количество гостей
+    await state.update_data(guests=guests)
+
+    # Суммируем всю информацию для подтверждения
+    data = await state.get_data()
+    selected_date = data.get("selected_date")
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+
+    # Рассчитываем стоимость
+    if service.is_hourly:
+        # Переводим время в часы
+        start_hour = int(start_time.split(":")[0])
+        end_hour = int(end_time.split(":")[0])
+        duration_hours = end_hour - start_hour
+        price = service.price * duration_hours
+    else:
+        price = service.price
+
+    # Формируем сообщение для подтверждения
+    confirmation_text = (
+        f"📋 *Подтверждение бронирования*\n\n"
+        f"Услуга: *{service.name}*\n"
+        f"Дата: {selected_date}\n"
+        f"Время: с {start_time} до {end_time}\n"
+        f"Количество человек: {guests}\n"
+        f"Стоимость: {price:,.0f} сум\n\n"
+        f"Подтвердите бронирование:"
+    )
+
+    await message.answer(
+        confirmation_text,
+        reply_markup=confirm_cancel_keyboard(),
+        parse_mode="Markdown"
+    )
+
+    await state.set_state(ServiceBookingStates.confirming)
+
+
+@services_router.callback_query(F.data == "confirm", ServiceBookingStates.confirming)
+async def confirm_service_booking(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    """Подтверждает бронирование услуги"""
+    # Получаем все данные из состояния
+    data = await state.get_data()
+    service_id = data.get("service_id")
+    selected_date = data.get("selected_date")
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+    guests = data.get("guests")
+
+    # Получаем информацию о пользователе
+    user = await get_or_create_user(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+        last_name=callback.from_user.last_name
+    )
+
+    try:
+        # Создаем бронирование услуги
+        service_booking = await create_service_booking(
+            session,
+            user_id=user.id,
+            service_id=service_id,
+            date=selected_date,
+            start_time=start_time,
+            end_time=end_time,
+            guests=guests
         )
 
-        await state.set_state(ServiceBookingStates.entering_guests)
-        await callback.answer()
-
-    @services_router.message(ServiceBookingStates.entering_guests)
-    async def process_guests_count(message: Message, state: FSMContext, session: AsyncSession):
-        """Обрабатывает ввод количества гостей"""
-        try:
-            guests = int(message.text.strip())
-            if guests <= 0:
-                raise ValueError("Количество гостей должно быть положительным числом")
-        except ValueError:
-            await message.answer("Пожалуйста, введите корректное число гостей (целое положительное число).")
-            return
-
-        # Получаем информацию об услуге
-        data = await state.get_data()
-        service_id = data.get("service_id")
-        service = await get_service(session, service_id)
-
-        # Проверяем ограничение по количеству гостей
-        if service.max_capacity and guests > service.max_capacity:
-            await message.answer(
-                f"Максимальное количество гостей для этой услуги: {service.max_capacity}.\n"
-                f"Пожалуйста, введите корректное число."
-            )
-            return
-
-        # Сохраняем количество гостей
-        await state.update_data(guests=guests)
-
-        # Суммируем всю информацию для подтверждения
-        data = await state.get_data()
-        selected_date = data.get("selected_date")
-        start_time = data.get("start_time")
-        end_time = data.get("end_time")
-
-        # Рассчитываем стоимость
-        if service.is_hourly:
-            # Переводим время в часы
-            start_hour = int(start_time.split(":")[0])
-            end_hour = int(end_time.split(":")[0])
-            duration_hours = end_hour - start_hour
-            price = service.price * duration_hours
-        else:
-            price = service.price
-
-        # Формируем сообщение для подтверждения
-        confirmation_text = (
-            f"📋 *Подтверждение бронирования*\n\n"
-            f"Услуга: *{service.name}*\n"
+        # Отправляем подтверждение
+        await callback.message.answer(
+            f"✅ Бронирование успешно создано!\n\n"
+            f"Номер бронирования: #{service_booking.id}\n"
+            f"Услуга: {data.get('service_name')}\n"
             f"Дата: {selected_date}\n"
             f"Время: с {start_time} до {end_time}\n"
-            f"Количество человек: {guests}\n"
-            f"Стоимость: {price:,.0f} сум\n\n"
-            f"Подтвердите бронирование:"
+            f"Сумма: {service_booking.total_price:,.0f} сум\n\n"
+            f"Статус: Ожидает подтверждения\n\n"
+            f"С вами свяжется администратор для подтверждения бронирования.",
+            reply_markup=payment_methods_keyboard(service_booking.id, "service")
         )
 
-        await message.answer(
-            confirmation_text,
-            reply_markup=confirm_cancel_keyboard(),
-            parse_mode="Markdown"
-        )
+        # Очищаем состояние
+        await state.clear()
 
-        await state.set_state(ServiceBookingStates.confirming)
-
-    @services_router.callback_query(F.data == "confirm", ServiceBookingStates.confirming)
-    async def confirm_service_booking(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
-        """Подтверждает бронирование услуги"""
-        # Получаем все данные из состояния
-        data = await state.get_data()
-        service_id = data.get("service_id")
-        selected_date = data.get("selected_date")
-        start_time = data.get("start_time")
-        end_time = data.get("end_time")
-        guests = data.get("guests")
-
-        # Получаем информацию о пользователе
-        user = await get_or_create_user(
-            session,
-            telegram_id=callback.from_user.id,
-            username=callback.from_user.username,
-            first_name=callback.from_user.first_name,
-            last_name=callback.from_user.last_name
-        )
-
-        try:
-            # Создаем бронирование услуги
-            service_booking = await create_service_booking(
-                session,
-                user_id=user.id,
-                service_id=service_id,
-                date=selected_date,
-                start_time=start_time,
-                end_time=end_time,
-                guests=guests
-            )
-
-            # Отправляем подтверждение
-            await callback.message.answer(
-                f"✅ Бронирование успешно создано!\n\n"
-                f"Номер бронирования: #{service_booking.id}\n"
-                f"Услуга: {data.get('service_name')}\n"
-                f"Дата: {selected_date}\n"
-                f"Время: с {start_time} до {end_time}\n"
-                f"Сумма: {service_booking.total_price:,.0f} сум\n\n"
-                f"Статус: Ожидает подтверждения\n\n"
-                f"С вами свяжется администратор для подтверждения бронирования.",
-                reply_markup=payment_methods_keyboard(service_booking.id, "service")
-            )
-
-            # Очищаем состояние
-            await state.clear()
-
-        except ValueError as e:
-            await callback.message.answer(
-                f"❌ Ошибка при создании бронирования: {str(e)}\n"
-                f"Пожалуйста, попробуйте выбрать другое время или дату.",
-                reply_markup=updated_main_keyboard()
-            )
-            await state.clear()
-
-        await callback.answer()
-
-    @services_router.callback_query(F.data == "cancel", ServiceBookingStates.confirming)
-    async def cancel_booking_process(callback: CallbackQuery, state: FSMContext):
-        """Отменяет процесс бронирования"""
+    except ValueError as e:
         await callback.message.answer(
-            "❌ Бронирование отменено. Вы можете попробовать снова или вернуться в главное меню.",
+            f"❌ Ошибка при создании бронирования: {str(e)}\n"
+            f"Пожалуйста, попробуйте выбрать другое время или дату.",
             reply_markup=updated_main_keyboard()
         )
         await state.clear()
-        await callback.answer()
 
-    @services_router.callback_query(F.data == "back_to_services")
-    async def back_to_services_list(callback: CallbackQuery, session: AsyncSession):
-        """Возвращает к списку дополнительных услуг"""
-        services = await get_available_services(session)
+    await callback.answer()
 
-        await callback.message.answer(
-            "🏊‍♂️ *Дополнительные услуги*\n\n"
-            "Выберите услугу для получения подробной информации и бронирования:",
-            reply_markup=services_keyboard(services),
-            parse_mode="Markdown"
-        )
 
-        await callback.answer()
+@services_router.callback_query(F.data == "cancel", ServiceBookingStates.confirming)
+async def cancel_booking_process(callback: CallbackQuery, state: FSMContext):
+    """Отменяет процесс бронирования"""
+    await callback.message.answer(
+        "❌ Бронирование отменено. Вы можете попробовать снова или вернуться в главное меню.",
+        reply_markup=updated_main_keyboard()
+    )
+    await state.clear()
+    await callback.answer()
 
-    @services_router.message(F.text == "📅 Мои бронирования")
-    async def show_user_bookings(message: Message, session: AsyncSession):
-        """Показывает список всех бронирований пользователя (номера и услуги)"""
-        user = await get_user_by_telegram_id(session, message.from_user.id)
-        if not user:
-            await message.answer(
-                "Вы еще не зарегистрированы в системе. Пожалуйста, используйте команду /start для регистрации.",
-                reply_markup=updated_main_keyboard()
-            )
-            return
 
-        # Получаем бронирования номеров
-        from app.database.crud import get_user_bookings
-        room_bookings = await get_user_bookings(session, user.id)
+@services_router.callback_query(F.data == "back_to_services")
+async def back_to_services_list(callback: CallbackQuery, session: AsyncSession):
+    """Возвращает к списку дополнительных услуг"""
+    services = await get_available_services(session)
 
-        # Получаем бронирования услуг
-        service_bookings = await get_user_service_bookings(session, user.id)
+    await callback.message.answer(
+        "🏊‍♂️ *Дополнительные услуги*\n\n"
+        "Выберите услугу для получения подробной информации и бронирования:",
+        reply_markup=services_keyboard(services),
+        parse_mode="Markdown"
+    )
 
-        # Если нет бронирований
-        if not room_bookings and not service_bookings:
-            await message.answer(
-                "У вас пока нет активных бронирований.",
-                reply_markup=updated_main_keyboard()
-            )
-            return
+    await callback.answer()
 
-        # Формируем сообщение о бронированиях номеров
-        message_text = "📅 *Ваши бронирования*\n\n"
 
-        if room_bookings:
-            message_text += "*Номера:*\n"
-            for booking in room_bookings:
-                status_emoji = "✅" if booking.status == "confirmed" else "⏳" if booking.status == "pending" else "❌"
-                message_text += (
-                    f"{status_emoji} {booking.room.name} #{booking.id}\n"
-                    f"  📅 {booking.check_in.strftime('%d.%m.%Y')} - {booking.check_out.strftime('%d.%m.%Y')}\n"
-                    f"  👥 {booking.guests} чел., 💰 {booking.total_price:,.0f} сум\n"
-                    f"  Статус: {booking.status}\n\n"
-                )
-
-        # Добавляем информацию о бронированиях услуг
-        if service_bookings:
-            message_text += "*Дополнительные услуги:*\n"
-            for booking in service_bookings:
-                if booking.status == "cancelled":
-                    continue  # Пропускаем отмененные бронирования
-
-                status_emoji = "✅" if booking.status == "confirmed" else "⏳" if booking.status == "pending" else "❌"
-                message_text += (
-                    f"{status_emoji} {booking.service.name} #{booking.id}\n"
-                    f"  📅 {booking.date.strftime('%d.%m.%Y')}, "
-                    f"⏰ {booking.start_time.strftime('%H:%M')}-{booking.end_time.strftime('%H:%M')}\n"
-                    f"  👥 {booking.guests} чел., 💰 {booking.total_price:,.0f} сум\n"
-                    f"  Статус: {booking.status}\n\n"
-                )
-
-        # Отправляем сообщение с информацией о бронированиях
-        await message.answer(message_text, parse_mode="Markdown")
-
-    # ============= Обработчики для административной панели =============
-
-    @admin_router.message(Command("admin"))
-    async def admin_panel(message: Message, session: AsyncSession):
-        """Показывает административную панель, если пользователь является администратором"""
-        admin = await get_bot_admin(session, message.from_user.id)
-
-        if not admin:
-            await message.answer("У вас нет доступа к административной панели.")
-            return
-
-        admin_text = (
-            f"👨‍💼 *Административная панель*\n\n"
-            f"Добро пожаловать, {message.from_user.first_name}!\n\n"
-            f"Выберите раздел для управления:"
-        )
-
+@services_router.message(F.text == "📅 Мои бронирования")
+async def show_user_bookings(message: Message, session: AsyncSession):
+    """Показывает список всех бронирований пользователя (номера и услуги)"""
+    user = await get_user_by_telegram_id(session, message.from_user.id)
+    if not user:
         await message.answer(
-            admin_text,
-            reply_markup=admin_keyboard(admin),
-            parse_mode="Markdown"
+            "Вы еще не зарегистрированы в системе. Пожалуйста, используйте команду /start для регистрации.",
+            reply_markup=updated_main_keyboard()
         )
+        return
 
-    @admin_router.callback_query(lambda c: c.data and c.data == "admin_rooms")
-    async def admin_manage_rooms(callback: CallbackQuery, session: AsyncSession):
-        """Управление номерами"""
-        admin = await get_bot_admin(session, callback.from_user.id)
+    # Получаем бронирования номеров
+    from app.database.crud import get_user_bookings
+    room_bookings = await get_user_bookings(session, user.id)
 
-        if not admin or not admin.can_manage_rooms:
-            await callback.answer("У вас нет доступа к этому разделу")
+    # Получаем бронирования услуг
+    service_bookings = await get_user_service_bookings(session, user.id)
+
+    # Если нет бронирований
+    if not room_bookings and not service_bookings:
+        await message.answer(
+            "У вас пока нет активных бронирований.",
+            reply_markup=updated_main_keyboard()
+        )
+        return
+
+    # Формируем сообщение о бронированиях номеров
+    message_text = "📅 *Ваши бронирования*\n\n"
+
+    if room_bookings:
+        message_text += "*Номера:*\n"
+        for booking in room_bookings:
+            status_emoji = "✅" if booking.status == "confirmed" else "⏳" if booking.status == "pending" else "❌"
+            message_text += (
+                f"{status_emoji} {booking.room.name} #{booking.id}\n"
+                f"  📅 {booking.check_in.strftime('%d.%m.%Y')} - {booking.check_out.strftime('%d.%m.%Y')}\n"
+                f"  👥 {booking.guests} чел., 💰 {booking.total_price:,.0f} сум\n"
+                f"  Статус: {booking.status}\n\n"
+            )
+
+    # Добавляем информацию о бронированиях услуг
+    if service_bookings:
+        message_text += "*Дополнительные услуги:*\n"
+        for booking in service_bookings:
+            if booking.status == "cancelled":
+                continue  # Пропускаем отмененные бронирования
+
+            status_emoji = "✅" if booking.status == "confirmed" else "⏳" if booking.status == "pending" else "❌"
+            message_text += (
+                f"{status_emoji} {booking.service.name} #{booking.id}\n"
+                f"  📅 {booking.date.strftime('%d.%m.%Y')}, "
+                f"⏰ {booking.start_time.strftime('%H:%M')}-{booking.end_time.strftime('%H:%M')}\n"
+                f"  👥 {booking.guests} чел., 💰 {booking.total_price:,.0f} сум\n"
+                f"  Статус: {booking.status}\n\n"
+            )
+
+    # Отправляем сообщение с информацией о бронированиях
+    await message.answer(message_text, parse_mode="Markdown")
+
+
+# ============= Обработчики для административной панели =============
+
+@admin_router.message(Command("admin"))
+async def admin_panel(message: Message, session: AsyncSession):
+    """Показывает административную панель, если пользователь является администратором"""
+    admin = await get_bot_admin(session, message.from_user.id)
+
+    if not admin:
+        await message.answer("У вас нет доступа к административной панели.")
+        return
+
+    admin_text = (
+        f"👨‍💼 *Административная панель*\n\n"
+        f"Добро пожаловать, {message.from_user.first_name}!\n\n"
+        f"Выберите раздел для управления:"
+    )
+
+    await message.answer(
+        admin_text,
+        reply_markup=admin_keyboard(admin),
+        parse_mode="Markdown"
+    )
+
+
+@admin_router.callback_query(lambda c: c.data and c.data == "admin_rooms")
+async def admin_manage_rooms(callback: CallbackQuery, session: AsyncSession):
+    """Управление номерами"""
+    admin = await get_bot_admin(session, callback.from_user.id)
+
+    if not admin or not admin.can_manage_rooms:
+        await callback.answer("У вас нет доступа к этому разделу")
+        return
+
+    await callback.message.answer(
+        "🛏️ *Управление номерами*\n\n"
+        "Здесь вы можете просматривать, добавлять и редактировать номера, "
+        "а также управлять их доступностью.\n\n"
+        "Выберите действие:",
+        reply_markup=room_availability_keyboard(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@admin_router.callback_query(lambda c: c.data and c.data == "admin_services")
+async def admin_manage_services(callback: CallbackQuery, session: AsyncSession):
+    """Управление дополнительными услугами"""
+    admin = await get_bot_admin(session, callback.from_user.id)
+
+    if not admin or not admin.can_manage_services:
+        await callback.answer("У вас нет доступа к этому разделу")
+        return
+
+    services = await get_all_services(session)
+
+    await callback.message.answer(
+        "🏊‍♂️ *Управление дополнительными услугами*\n\n"
+        "Здесь вы можете просматривать, добавлять, редактировать и удалять дополнительные услуги.\n\n"
+        "Выберите услугу или действие:",
+        reply_markup=services_keyboard(services, is_admin=True),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@admin_router.callback_query(lambda c: c.data and c.data == "admin_bookings")
+async def admin_manage_bookings(callback: CallbackQuery, session: AsyncSession):
+    """Управление бронированиями"""
+    admin = await get_bot_admin(session, callback.from_user.id)
+
+    if not admin or not admin.can_manage_bookings:
+        await callback.answer("У вас нет доступа к этому разделу")
+        return
+
+    await callback.message.answer(
+        "📝 *Управление бронированиями*\n\n"
+        "Здесь вы можете просматривать и управлять бронированиями номеров и услуг.\n\n"
+        "Выберите действие:",
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@admin_router.callback_query(lambda c: c.data and c.data == "room_calendar")
+async def show_room_calendar(callback: CallbackQuery, session: AsyncSession):
+    """Показывает календарь занятости номеров"""
+    admin = await get_bot_admin(session, callback.from_user.id)
+
+    if not admin or not admin.can_manage_rooms:
+        await callback.answer("У вас нет доступа к этой функции")
+        return
+
+    # Получаем данные о занятости номеров на ближайший месяц
+    today = datetime.now().date()
+    next_month = today + timedelta(days=30)
+
+    occupancy = await get_all_rooms_occupancy(
+        session,
+        today.strftime("%Y-%m-%d"),
+        next_month.strftime("%Y-%m-%d")
+    )
+
+    # Формируем сообщение с информацией о занятости
+    message_text = "📅 *Календарь занятости номеров*\n\n"
+
+    from app.database.crud import get_all_rooms
+    rooms = await get_all_rooms(session)
+
+    for room in rooms:
+        room_occupancy = occupancy.get(room.id, [])
+        message_text += f"*{room.name}:*\n"
+
+        if not room_occupancy:
+            message_text += "  Свободен на ближайший месяц\n\n"
+            continue
+
+        for booking in room_occupancy:
+            message_text += (
+                f"  • {booking['check_in']} - {booking['check_out']}\n"
+                f"    {booking['guest_name']}, {booking['guests']} чел.\n"
+            )
+
+        message_text += "\n"
+
+    await callback.message.answer(
+        message_text,
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@admin_router.callback_query(F.data == "back_to_admin")
+async def back_to_admin_panel(callback: CallbackQuery, session: AsyncSession):
+    """Возвращает к административной панели"""
+    admin = await get_bot_admin(session, callback.from_user.id)
+
+    if not admin:
+        await callback.answer("У вас нет доступа к административной панели")
+        return
+
+    admin_text = (
+        f"👨‍💼 *Административная панель*\n\n"
+        f"Добро пожаловать, {callback.from_user.first_name}!\n\n"
+        f"Выберите раздел для управления:"
+    )
+
+    await callback.message.answer(
+        admin_text,
+        reply_markup=admin_keyboard(admin),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+# ============= Обработчики для платежей =============
+
+@payment_router.callback_query(lambda c: c.data and c.data.startswith("pay_"))
+async def start_payment_process(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    """Начинает процесс оплаты"""
+    # Формат data: pay_<type>_<id>_<method>
+    # type: booking или service
+    # id: ID бронирования
+    # method: payme, click или cash
+    parts = callback.data.split("_")
+
+    if len(parts) < 4:
+        await callback.answer("Некорректный формат данных")
+        return
+
+    booking_type = parts[1]
+    booking_id = int(parts[2])
+    payment_method = parts[3]
+
+    # Получаем данные о бронировании
+    if booking_type == "booking":
+        from app.database.crud import get_booking
+        booking = await get_booking(session, booking_id)
+        if not booking:
+            await callback.answer("Бронирование не найдено")
             return
 
-        await callback.message.answer(
-            "🛏️ *Управление номерами*\n\n"
-            "Здесь вы можете просматривать, добавлять и редактировать номера, "
-            "а также управлять их доступностью.\n\n"
-            "Выберите действие:",
-            reply_markup=room_availability_keyboard(),
-            parse_mode="Markdown"
-        )
-        await callback.answer()
+        amount = booking.total_price
+        service_booking_id = None
+        description = f"Оплата бронирования номера #{booking_id}"
 
-    @admin_router.callback_query(lambda c: c.data and c.data == "admin_services")
-    async def admin_manage_services(callback: CallbackQuery, session: AsyncSession):
-        """Управление дополнительными услугами"""
-        admin = await get_bot_admin(session, callback.from_user.id)
-
-        if not admin or not admin.can_manage_services:
-            await callback.answer("У вас нет доступа к этому разделу")
+    elif booking_type == "service":
+        service_booking = await get_service_booking(session, booking_id)
+        if not service_booking:
+            await callback.answer("Бронирование услуги не найдено")
             return
 
-        services = await get_all_services(session)
+        amount = service_booking.total_price
+        booking_id = None
+        service_booking_id = service_booking.id
+        description = f"Оплата бронирования услуги {service_booking.service.name} #{service_booking_id}"
 
-        await callback.message.answer(
-            "🏊‍♂️ *Управление дополнительными услугами*\n\n"
-            "Здесь вы можете просматривать, добавлять, редактировать и удалять дополнительные услуги.\n\n"
-            "Выберите услугу или действие:",
-            reply_markup=services_keyboard(services, is_admin=True),
-            parse_mode="Markdown"
-        )
-        await callback.answer()
+    else:
+        await callback.answer("Некорректный тип бронирования")
+        return
 
-    @admin_router.callback_query(lambda c: c.data and c.data == "admin_bookings")
-    async def admin_manage_bookings(callback: CallbackQuery, session: AsyncSession):
-        """Управление бронированиями"""
-        admin = await get_bot_admin(session, callback.from_user.id)
-
-        if not admin or not admin.can_manage_bookings:
-            await callback.answer("У вас нет доступа к этому разделу")
-            return
-
-        await callback.message.answer(
-            "📝 *Управление бронированиями*\n\n"
-            "Здесь вы можете просматривать и управлять бронированиями номеров и услуг.\n\n"
-            "Выберите действие:",
-            parse_mode="Markdown"
-        )
-        await callback.answer()
-
-    @admin_router.callback_query(lambda c: c.data and c.data == "room_calendar")
-    async def show_room_calendar(callback: CallbackQuery, session: AsyncSession):
-        """Показывает календарь занятости номеров"""
-        admin = await get_bot_admin(session, callback.from_user.id)
-
-        if not admin or not admin.can_manage_rooms:
-            await callback.answer("У вас нет доступа к этой функции")
-            return
-
-        # Получаем данные о занятости номеров на ближайший месяц
-        today = datetime.now().date()
-        next_month = today + timedelta(days=30)
-
-        occupancy = await get_all_rooms_occupancy(
+    # Обработка различных методов оплаты
+    if payment_method == "cash":
+        # Создаем запись о платеже с методом оплаты "cash"
+        payment = await create_payment(
             session,
-            today.strftime("%Y-%m-%d"),
-            next_month.strftime("%Y-%m-%d")
-        )
-
-        # Формируем сообщение с информацией о занятости
-        message_text = "📅 *Календарь занятости номеров*\n\n"
-
-        from app.database.crud import get_all_rooms
-        rooms = await get_all_rooms(session)
-
-        for room in rooms:
-            room_occupancy = occupancy.get(room.id, [])
-            message_text += f"*{room.name}:*\n"
-
-            if not room_occupancy:
-                message_text += "  Свободен на ближайший месяц\n\n"
-                continue
-
-            for booking in room_occupancy:
-                message_text += (
-                    f"  • {booking['check_in']} - {booking['check_out']}\n"
-                    f"    {booking['guest_name']}, {booking['guests']} чел.\n"
-                )
-
-            message_text += "\n"
-
-        await callback.message.answer(
-            message_text,
-            parse_mode="Markdown"
-        )
-        await callback.answer()
-
-    @admin_router.callback_query(F.data == "back_to_admin")
-    async def back_to_admin_panel(callback: CallbackQuery, session: AsyncSession):
-        """Возвращает к административной панели"""
-        admin = await get_bot_admin(session, callback.from_user.id)
-
-        if not admin:
-            await callback.answer("У вас нет доступа к административной панели")
-            return
-
-        admin_text = (
-            f"👨‍💼 *Административная панель*\n\n"
-            f"Добро пожаловать, {callback.from_user.first_name}!\n\n"
-            f"Выберите раздел для управления:"
+            amount=amount,
+            payment_method="cash",
+            booking_id=booking_id,
+            service_booking_id=service_booking_id,
+            details={"description": description, "payment_type": "cash"}
         )
 
         await callback.message.answer(
-            admin_text,
-            reply_markup=admin_keyboard(admin),
+            f"✅ Выбрана оплата при заселении\n\n"
+            f"Ваше бронирование подтверждено. Оплата будет произведена при заселении.\n"
+            f"Номер платежа: #{payment.id}\n"
+            f"Сумма: {amount:,.0f} сум",
+            reply_markup=updated_main_keyboard()
+        )
+
+    elif payment_method in ["payme", "click"]:
+        # Создаем запись о платеже
+        payment = await create_payment(
+            session,
+            amount=amount,
+            payment_method=payment_method,
+            booking_id=booking_id,
+            service_booking_id=service_booking_id,
+            details={"description": description, "payment_type": "online"}
+        )
+
+        # Формируем сообщение с инструкцией по оплате
+        payment_instructions = (
+            f"💳 *Инструкция по оплате через {payment_method.upper()}*\n\n"
+            f"1. Отсканируйте QR-код или нажмите на ссылку ниже\n"
+            f"2. Введите сумму: {amount:,.0f} сум\n"
+            f"3. В комментарии укажите номер бронирования: "
+            f"{'B' if booking_id else 'S'}{booking_id or service_booking_id}\n\n"
+            f"После оплаты, пожалуйста, пришлите чек или скриншот оплаты администратору."
+        )
+
+        await callback.message.answer(
+            payment_instructions,
             parse_mode="Markdown"
         )
-        await callback.answer()
 
-    # ============= Обработчики для платежей =============
+        # Здесь можно добавить логику для генерации QR-кода или ссылки на оплату
+        # В данном примере просто показываем инструкцию
 
-    @payment_router.callback_query(lambda c: c.data and c.data.startswith("pay_"))
-    async def start_payment_process(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
-        """Начинает процесс оплаты"""
-        # Формат data: pay_<type>_<id>_<method>
-        # type: booking или service
-        # id: ID бронирования
-        # method: payme, click или cash
-        parts = callback.data.split("_")
+    else:
+        await callback.answer("Неизвестный метод оплаты")
+        return
 
-        if len(parts) < 4:
-            await callback.answer("Некорректный формат данных")
-            return
-
-        booking_type = parts[1]
-        booking_id = int(parts[2])
-        payment_method = parts[3]
-
-        # Получаем данные о бронировании
-        if booking_type == "booking":
-            from app.database.crud import get_booking
-            booking = await get_booking(session, booking_id)
-            if not booking:
-                await callback.answer("Бронирование не найдено")
-                return
-
-            amount = booking.total_price
-            service_booking_id = None
-            description = f"Оплата бронирования номера #{booking_id}"
-
-        elif booking_type == "service":
-            service_booking = await get_service_booking(session, booking_id)
-            if not service_booking:
-                await callback.answer("Бронирование услуги не найдено")
-                return
-
-            amount = service_booking.total_price
-            booking_id = None
-            service_booking_id = service_booking.id
-            description = f"Оплата бронирования услуги {service_booking.service.name} #{service_booking_id}"
-
-        else:
-            await callback.answer("Некорректный тип бронирования")
-            return
-
-        # Обработка различных методов оплаты
-        if payment_method == "cash":
-            # Создаем запись о платеже с методом оплаты "cash"
-            payment = await create_payment(
-                session,
-                amount=amount,
-                payment_method="cash",
-                booking_id=booking_id,
-                service_booking_id=service_booking_id,
-                details={"description": description, "payment_type": "cash"}
-            )
-
-            await callback.message.answer(
-                f"✅ Выбрана оплата при заселении\n\n"
-                f"Ваше бронирование подтверждено. Оплата будет произведена при заселении.\n"
-                f"Номер платежа: #{payment.id}\n"
-                f"Сумма: {amount:,.0f} сум",
-                reply_markup=updated_main_keyboard()
-            )
-
-        elif payment_method in ["payme", "click"]:
-            # Создаем запись о платеже
-            payment = await create_payment(
-                session,
-                amount=amount,
-                payment_method=payment_method,
-                booking_id=booking_id,
-                service_booking_id=service_booking_id,
-                details={"description": description, "payment_type": "online"}
-            )
-
-            # Формируем сообщение с инструкцией по оплате
-            payment_instructions = (
-                f"💳 *Инструкция по оплате через {payment_method.upper()}*\n\n"
-                f"1. Отсканируйте QR-код или нажмите на ссылку ниже\n"
-                f"2. Введите сумму: {amount:,.0f} сум\n"
-                f"3. В комментарии укажите номер бронирования: "
-                f"{'B' if booking_id else 'S'}{booking_id or service_booking_id}\n\n"
-                f"После оплаты, пожалуйста, пришлите чек или скриншот оплаты администратору."
-            )
-
-            await callback.message.answer(
-                payment_instructions,
-                parse_mode="Markdown"
-            )
-
-            # Здесь можно добавить логику для генерации QR-кода или ссылки на оплату
-            # В данном примере просто показываем инструкцию
-
-        else:
-            await callback.answer("Неизвестный метод оплаты")
-            return
-
-        await callback.answer()
+    await callback.answer()
 
     # Регистрация всех обработчиков в одной функции
     def register_additional_handlers(dispatcher):
