@@ -72,6 +72,7 @@ def initialize_extensions(app: FastAPI, dispatcher: Dispatcher):
         logger.error(f"Error including additional API routes: {e}")
 
     # Добавляем новые маршруты для веб-приложения
+    # Исправьте этот блок кода
     try:
         from fastapi.responses import HTMLResponse
         from fastapi.templating import Jinja2Templates
@@ -79,11 +80,11 @@ def initialize_extensions(app: FastAPI, dispatcher: Dispatcher):
         templates = Jinja2Templates(directory="app/web/templates")
 
         @app.get("/app/services", response_class=HTMLResponse)
-        async def services_page(request: FastAPI.request):
+        async def services_page(request: Request):  # Используйте Request, а не FastAPI.request
             return templates.TemplateResponse("services.html", {"request": request})
 
         @app.get("/app/admin/calendar", response_class=HTMLResponse)
-        async def calendar_page(request: FastAPI.request):
+        async def calendar_page(request: Request):  # Используйте Request, а не FastAPI.request
             return templates.TemplateResponse("calendar.html", {"request": request})
 
         logger.info("Additional web routes added")
@@ -93,30 +94,34 @@ def initialize_extensions(app: FastAPI, dispatcher: Dispatcher):
     logger.info("Extensions initialization completed")
 
 
-def check_database_tables():
+async def check_database_tables():
     """
     Проверяет наличие всех необходимых таблиц в базе данных.
     Выводит информацию о текущем состоянии базы данных.
     """
-    inspector = inspect(engine)
-    tables = inspector.get_table_names()
+    try:
+        async with engine.begin() as conn:
+            # Используем run_sync для выполнения синхронного кода в асинхронном контексте
+            tables = await conn.run_sync(lambda sync_conn: sync_conn.dialect.get_table_names(sync_conn))
 
-    logger.info(f"Database tables: {tables}")
+            logger.info(f"Database tables: {tables}")
 
-    # Проверяем наличие основных таблиц
-    required_tables = [
-        "users", "rooms", "bookings", "reviews",
-        "additional_services", "service_bookings", "bot_admins", "payments"
-    ]
+            # Проверяем наличие основных таблиц
+            required_tables = [
+                "users", "rooms", "bookings", "reviews",
+                "additional_services", "service_bookings", "bot_admins", "payments"
+            ]
 
-    missing_tables = [table for table in required_tables if table not in tables]
+            missing_tables = [table for table in required_tables if table not in tables]
 
-    if missing_tables:
-        logger.warning(f"Missing tables: {missing_tables}")
-    else:
-        logger.info("All required tables are present")
+            if missing_tables:
+                logger.warning(f"Missing tables: {missing_tables}")
+            else:
+                logger.info("All required tables are present")
 
-    # Выводим структуру существующих таблиц
-    for table in tables:
-        columns = inspector.get_columns(table)
-        logger.debug(f"Table '{table}' columns: {[col['name'] for col in columns]}")
+            # Если нужно вывести структуру таблиц, также используйте run_sync
+            # for table in tables:
+            #     columns = await conn.run_sync(lambda sync_conn: inspect(sync_conn).get_columns(table))
+            #     logger.debug(f"Table '{table}' columns: {[col['name'] for col in columns]}")
+    except Exception as e:
+        logger.error(f"Error checking database tables: {e}")

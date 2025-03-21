@@ -91,7 +91,8 @@ app.include_router(web_router, prefix="")
 initialize_extensions(app, dp)
 
 # Check database tables
-check_database_tables()
+import asyncio
+asyncio.create_task(check_database_tables())
 
 # Webhook route handler for Telegram updates
 @app.post("/webhook")
