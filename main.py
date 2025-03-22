@@ -13,7 +13,7 @@ from aiogram.types import Update
 
 from app.config import BOT_TOKEN, HOST, PORT, WEBHOOK_URL, WEBAPP_URL
 from app.database import init_db
-from app.bot.handlers import router as bot_router
+from app.bot.singleton_router import get_router
 from app.bot.middleware import DatabaseMiddleware
 from app.web.routes import router as web_router
 
@@ -23,11 +23,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-# Initialize database
-@app.on_event("startup")
-async def startup_event():
-    await init_db()
 
 # Create bot and dispatcher outside lifespan to make them accessible
 bot = Bot(
@@ -39,9 +34,9 @@ dp = Dispatcher(storage=MemoryStorage())
 # Register middleware
 dp.update.outer_middleware(DatabaseMiddleware())
 
-# Register bot router
+# Get singleton router instance and register it
+bot_router = get_router()
 dp.include_router(bot_router)
-
 
 # Create context manager for FastAPI
 @asynccontextmanager
@@ -52,6 +47,10 @@ async def lifespan(app: FastAPI):
         await bot.set_webhook(url=WEBHOOK_URL)
     logger.info(f"Bot webhook set to {WEBHOOK_URL}")
     logger.info(f"Web app URL is {WEBAPP_URL}")
+
+    # Initialize database here to ensure it's done during startup
+    await init_db()
+    logger.info("Database initialized")
 
     yield
 
@@ -250,4 +249,5 @@ async def debug_info():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host=HOST, port=PORT, reload=True)
+    # Disable hot reloading for now to avoid router registration issues
+    uvicorn.run("main:app", host=HOST, port=PORT, reload=False)

@@ -1,9 +1,10 @@
-from aiogram import Router, F
+from aiogram import F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.singleton_router import get_router
 from app.bot.keyboards import main_keyboard, rooms_keyboard, room_detail_keyboard, support_keyboard
 from app.database.crud import (
     get_user_by_telegram_id, create_user, get_all_rooms,
@@ -11,7 +12,8 @@ from app.database.crud import (
 )
 from app.database.models import User
 
-router = Router()
+# Get the singleton router instance
+router = get_router()
 
 
 # Handler for /start command
