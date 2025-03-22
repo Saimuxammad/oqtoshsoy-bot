@@ -25,7 +25,7 @@ class User(Base):
 
 
 class Room(Base):
-    __tablename__ = "rooms"
+    __tablename__ = 'rooms'
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
@@ -35,6 +35,10 @@ class Room(Base):
     capacity = Column(Integer, nullable=False)
     is_available = Column(Boolean, default=True)
     image_url = Column(String(500), nullable=True)
+    # New fields added here:
+    photos = Column(Text)  # JSON-массив URL фотографий
+    video_url = Column(String(500), nullable=True)
+    amenities = Column(Text)  # JSON-массив удобств в номере
 
     bookings = relationship("Booking", back_populates="room")
     reviews = relationship("Review", back_populates="room")
@@ -79,11 +83,3 @@ class Review(Base):
 
     def __repr__(self):
         return f"<Review {self.id} - {self.rating}>"
-
-# Добавьте в app/database/models.py новые поля:
-class Room(Base):
-    # ...существующие поля...
-    photos = Column(Text)  # JSON-массив URL фотографий
-    video_url = Column(String(500), nullable=True)
-    amenities = Column(Text)  # JSON-массив удобств в номере
-    # ...
