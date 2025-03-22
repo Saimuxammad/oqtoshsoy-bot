@@ -13,7 +13,7 @@ from aiogram.types import Update
 
 from app.config import BOT_TOKEN, HOST, PORT, WEBHOOK_URL, WEBAPP_URL
 from app.database import init_db
-from app.bot.singleton_router import get_router
+# Import router from web routes but not bot yet
 from app.bot.middleware import DatabaseMiddleware
 from app.web.routes import router as web_router
 
@@ -34,9 +34,6 @@ dp = Dispatcher(storage=MemoryStorage())
 # Register middleware
 dp.update.outer_middleware(DatabaseMiddleware())
 
-# Get singleton router instance and register it
-bot_router = get_router()
-dp.include_router(bot_router)
 
 # Create context manager for FastAPI
 @asynccontextmanager
@@ -47,6 +44,12 @@ async def lifespan(app: FastAPI):
         await bot.set_webhook(url=WEBHOOK_URL)
     logger.info(f"Bot webhook set to {WEBHOOK_URL}")
     logger.info(f"Web app URL is {WEBAPP_URL}")
+
+    # Import and set up the router here
+    from app.bot.handlers import router as bot_router
+    if not any(router is bot_router for router in getattr(dp, "_sub_routers", [])):
+        dp.include_router(bot_router)
+        logger.info("Bot router registered")
 
     # Initialize database here to ensure it's done during startup
     await init_db()
@@ -245,9 +248,36 @@ async def debug_info():
     }
 
 
+# Reset database endpoint for development
+@app.get("/reset-db")
+async def reset_database():
+    """Temporary endpoint to reset the database during development"""
+    import os
+    from app.config import DATABASE_URL  # Adjust import based on your project structure
+
+    # Extract file path from SQLite URL
+    if DATABASE_URL.startswith('sqlite:///'):
+        db_path = DATABASE_URL[10:]
+    else:
+        db_path = DATABASE_URL
+
+    try:
+        # Check if file exists
+        if os.path.exists(db_path):
+            # Delete the file
+            os.remove(db_path)
+            # Initialize database
+            await init_db()
+            return {"status": "success", "message": f"Database {db_path} reset successfully"}
+        else:
+            return {"status": "warning", "message": f"Database file {db_path} not found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 # Entry point for server startup
 if __name__ == "__main__":
     import uvicorn
 
-    # Disable hot reloading for now to avoid router registration issues
-    uvicorn.run("main:app", host=HOST, port=PORT, reload=False)
+    # Start with reload=False until router issues are fixed
+    uvicorn.run("main:app", host=HOST, port=8001, reload=False)
