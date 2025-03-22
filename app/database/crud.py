@@ -4,7 +4,7 @@ from sqlalchemy import or_, and_, func, desc
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any, Tuple
 
-from app.database.fixed_models import User, Room, Booking, Review
+from app.database.models import User, Room, Booking, Review
 
 
 # User-related functions
