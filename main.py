@@ -25,7 +25,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize database
-init_db()
+@app.on_event("startup")
+async def startup_event():
+    await init_db()
 
 # Create bot and dispatcher outside lifespan to make them accessible
 bot = Bot(
