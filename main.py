@@ -764,9 +764,9 @@ async def direct_rooms():
         return {"status": "error", "message": str(e)}
 
 
-@app.get("/update-images")
-async def update_images():
-    """Update room images with real URLs"""
+@app.get("/update-room-images")
+async def update_room_images():
+    """Update room images with valid URLs"""
     try:
         import sqlite3
         import os
@@ -789,27 +789,24 @@ async def update_images():
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        # Update image URLs with real URLs
-        updates = [
-            (1, "https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=1000&auto=format&fit=crop"),
-            # Standard room
-            (2, "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?q=80&w=1000&auto=format&fit=crop"),
-            # Luxury room
-            (3, "https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=1000&auto=format&fit=crop")
-            # Family room
+        # Update with direct image URLs that work with Telegram
+        image_updates = [
+            (1, "https://i.imgur.com/ZXBtVw7.jpg"),  # Standard room
+            (2, "https://i.imgur.com/Ecz64bK.jpg"),  # Luxury room
+            (3, "https://i.imgur.com/nf1aE8m.jpg")  # Family room
         ]
 
-        for room_id, image_url in updates:
+        for room_id, image_url in image_updates:
             cursor.execute(
                 "UPDATE rooms SET image_url = ? WHERE id = ?",
                 (image_url, room_id)
             )
 
-        # Commit changes and close connection
+        # Commit and close
         conn.commit()
         conn.close()
 
-        return {"status": "success", "message": "Room images updated successfully"}
+        return {"status": "success", "message": "Room images updated with valid URLs"}
 
     except Exception as e:
         logger.error(f"Error updating room images: {str(e)}")
