@@ -764,6 +764,57 @@ async def direct_rooms():
         return {"status": "error", "message": str(e)}
 
 
+@app.get("/update-images")
+async def update_images():
+    """Update room images with real URLs"""
+    try:
+        import sqlite3
+        import os
+        from app.config import DATABASE_URL
+
+        # Extract file path from SQLite URL
+        if DATABASE_URL.startswith('sqlite:///'):
+            db_path = DATABASE_URL[10:]
+        else:
+            db_path = DATABASE_URL
+
+        # Make the path absolute
+        if not os.path.isabs(db_path):
+            db_path = os.path.join(os.getcwd(), db_path)
+
+        if not os.path.exists(db_path):
+            return {"status": "error", "message": f"Database file not found at {db_path}"}
+
+        # Connect to database
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Update image URLs with real URLs
+        updates = [
+            (1, "https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=1000&auto=format&fit=crop"),
+            # Standard room
+            (2, "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?q=80&w=1000&auto=format&fit=crop"),
+            # Luxury room
+            (3, "https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=1000&auto=format&fit=crop")
+            # Family room
+        ]
+
+        for room_id, image_url in updates:
+            cursor.execute(
+                "UPDATE rooms SET image_url = ? WHERE id = ?",
+                (image_url, room_id)
+            )
+
+        # Commit changes and close connection
+        conn.commit()
+        conn.close()
+
+        return {"status": "success", "message": "Room images updated successfully"}
+
+    except Exception as e:
+        logger.error(f"Error updating room images: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
 # Entry point for server startup
 if __name__ == "__main__":
     import uvicorn
