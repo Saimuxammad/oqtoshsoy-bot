@@ -368,3 +368,65 @@ except Exception as e:
         except Exception as e:
             logger.error(f"Error adding sample data: {str(e)}")
             raise
+
+
+@app.get("/fix-connection")
+async def fix_connection():
+    """Fix the database connection by updating the engine"""
+    try:
+        import sqlite3
+        import os
+        from sqlalchemy.ext.asyncio import create_async_engine
+        from app.database import engine
+
+        # 1. Get the absolute path for the database
+        from app.config import DATABASE_URL
+
+        # Extract file path from SQLite URL
+        if DATABASE_URL.startswith('sqlite:///'):
+            db_path = DATABASE_URL[10:]
+        else:
+            db_path = DATABASE_URL
+
+        # Make the path absolute
+        if not os.path.isabs(db_path):
+            db_path = os.path.join(os.getcwd(), db_path)
+
+        # 2. Check if the database exists and has tables
+        if os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = [row[0] for row in cursor.fetchall()]
+            conn.close()
+
+            if "rooms" in tables:
+                # 3. Create a new engine with the correct path
+                new_url = f"sqlite+aiosqlite:///{db_path}"
+                global engine
+                engine = create_async_engine(new_url, echo=False, future=True)
+
+                # 4. Update any global engine references
+                import app.database
+                app.database.engine = engine
+
+                return {
+                    "status": "success",
+                    "message": "База данных успешно подключена",
+                    "database_path": db_path,
+                    "tables": tables
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": "База данных существует, но таблица 'rooms' не найдена",
+                    "tables": tables
+                }
+        else:
+            return {
+                "status": "error",
+                "message": f"База данных по пути {db_path} не существует"
+            }
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
