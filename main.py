@@ -420,6 +420,54 @@ async def direct_reset():
         return {"status": "error", "message": str(e)}
 
 
+# Database info endpoint to diagnose issues
+@app.get("/db-info")
+async def db_info():
+    """Get information about the database"""
+    import os
+    from app.config import DATABASE_URL
+
+    # Extract file path from SQLite URL
+    if DATABASE_URL.startswith('sqlite:///'):
+        db_path = DATABASE_URL[10:]
+    else:
+        db_path = DATABASE_URL
+
+    # Check if file exists
+    exists = os.path.exists(db_path)
+
+    # Get current working directory
+    cwd = os.getcwd()
+
+    # List files in the current directory
+    try:
+        files = os.listdir()
+    except Exception as e:
+        files = [f"Unable to list files: {str(e)}"]
+
+    # Try to open and check tables in the database
+    tables = []
+    try:
+        import sqlite3
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [row[0] for row in cursor.fetchall()]
+        conn.close()
+    except Exception as e:
+        tables = [f"Error accessing database: {str(e)}"]
+
+    return {
+        "database_url": DATABASE_URL,
+        "db_path": db_path,
+        "exists": exists,
+        "cwd": cwd,
+        "files": files,
+        "tables": tables,
+        "app_directory_structure": os.listdir("app") if os.path.exists("app") else ["app directory not found"]
+    }
+
+
 # Entry point for server startup
 if __name__ == "__main__":
     import uvicorn
