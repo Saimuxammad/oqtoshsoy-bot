@@ -3,6 +3,9 @@ from sqlalchemy.future import select
 from sqlalchemy import or_, and_, func, desc
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any, Tuple
+import sqlite3
+import os
+import json
 
 from app.database.models import User, Room, Booking, Review
 
@@ -41,9 +44,69 @@ async def get_or_create_user(db: AsyncSession, telegram_id: int, username: Optio
 # Room-related functions
 async def get_all_rooms(db: AsyncSession) -> List[Room]:
     """Get all available rooms"""
-    result = await db.execute(select(Room).order_by(Room.price_per_night))
-    # Don't use await here - just return the scalars directly
-    return result.scalars().all()
+    try:
+        result = await db.execute(select(Room).order_by(Room.price_per_night))
+        return result.scalars().all()
+    except Exception as e:
+        # Fallback to direct SQLite if SQLAlchemy fails
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error getting rooms with SQLAlchemy: {str(e)}")
+
+        try:
+            # Try to get rooms directly with SQLite
+            from app.config import DATABASE_URL
+
+            # Extract file path from SQLite URL
+            if DATABASE_URL.startswith('sqlite:///'):
+                db_path = DATABASE_URL[10:]
+            else:
+                db_path = DATABASE_URL
+
+            # Make the path absolute
+            if not os.path.isabs(db_path):
+                db_path = os.path.join(os.getcwd(), db_path)
+
+            if not os.path.exists(db_path):
+                logger.error(f"Database file not found at {db_path}")
+                return []
+
+            # Connect to database
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row  # This enables column access by name
+            cursor = conn.cursor()
+
+            # Query rooms
+            cursor.execute("SELECT * FROM rooms ORDER BY price_per_night")
+            rows = cursor.fetchall()
+
+            # Convert rows to Room objects
+            rooms = []
+            for row in rows:
+                room_dict = {key: row[key] for key in row.keys()}
+                # Create Room object
+                room = Room(
+                    id=room_dict['id'],
+                    name=room_dict['name'],
+                    description=room_dict['description'],
+                    room_type=room_dict['room_type'],
+                    price_per_night=room_dict['price_per_night'],
+                    capacity=room_dict['capacity'],
+                    is_available=bool(room_dict['is_available']),
+                    image_url=room_dict['image_url'],
+                    photos=room_dict['photos'],
+                    video_url=room_dict['video_url'],
+                    amenities=room_dict['amenities']
+                )
+                rooms.append(room)
+
+            conn.close()
+            logger.info(f"Successfully fetched {len(rooms)} rooms directly with SQLite")
+            return rooms
+
+        except Exception as direct_error:
+            logger.error(f"Error getting rooms with direct SQLite: {str(direct_error)}")
+            return []
 
 
 async def get_room(db: AsyncSession, room_id: int) -> Optional[Room]:

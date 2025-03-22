@@ -639,6 +639,131 @@ async def direct_reset_absolute():
         return {"status": "error", "message": str(e)}
 
 
+@app.get("/fix-connection")
+async def fix_connection():
+    """Fix the database connection by updating the engine"""
+    try:
+        import sqlite3
+        import os
+        from sqlalchemy.ext.asyncio import create_async_engine
+        import app.database
+
+        # 1. Get the absolute path for the database
+        from app.config import DATABASE_URL
+
+        # Extract file path from SQLite URL
+        if DATABASE_URL.startswith('sqlite:///'):
+            db_path = DATABASE_URL[10:]
+        else:
+            db_path = DATABASE_URL
+
+        # Make the path absolute
+        if not os.path.isabs(db_path):
+            db_path = os.path.join(os.getcwd(), db_path)
+
+        # 2. Check if the database exists and has tables
+        if os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = [row[0] for row in cursor.fetchall()]
+            conn.close()
+
+            if "rooms" in tables:
+                # 3. Create a new engine with the correct path
+                new_url = f"sqlite+aiosqlite:///{db_path}"
+                try:
+                    new_engine = create_async_engine(new_url, echo=False, future=True)
+
+                    # 4. Try to update the module's engine
+                    if hasattr(app.database, 'engine'):
+                        app.database.engine = new_engine
+                        logger.info(f"Successfully updated database engine to {new_url}")
+                except Exception as e:
+                    logger.error(f"Error creating new engine: {str(e)}")
+
+                return {
+                    "status": "success",
+                    "message": "База данных успешно подключена",
+                    "database_path": db_path,
+                    "tables": tables,
+                    "database_url": DATABASE_URL,
+                    "new_url": new_url
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": "База данных существует, но таблица 'rooms' не найдена",
+                    "tables": tables
+                }
+        else:
+            return {
+                "status": "error",
+                "message": f"База данных по пути {db_path} не существует"
+            }
+
+    except Exception as e:
+        logger.error(f"Error in fix_connection: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/direct-rooms")
+async def direct_rooms():
+    """Get rooms directly from the database"""
+    try:
+        import sqlite3
+        import os
+        import json
+        from app.config import DATABASE_URL
+
+        # Extract file path from SQLite URL
+        if DATABASE_URL.startswith('sqlite:///'):
+            db_path = DATABASE_URL[10:]
+        else:
+            db_path = DATABASE_URL
+
+        # Make the path absolute
+        if not os.path.isabs(db_path):
+            db_path = os.path.join(os.getcwd(), db_path)
+
+        if not os.path.exists(db_path):
+            return {"status": "error", "message": f"Database file not found at {db_path}"}
+
+        # Connect to database
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row  # This enables column access by name
+        cursor = conn.cursor()
+
+        # Query rooms
+        cursor.execute("SELECT * FROM rooms ORDER BY price_per_night")
+        rows = cursor.fetchall()
+
+        # Convert rows to list of dicts
+        rooms = []
+        for row in rows:
+            room_dict = {key: row[key] for key in row.keys()}
+            # Parse JSON fields
+            if 'amenities' in room_dict and room_dict['amenities']:
+                try:
+                    room_dict['amenities'] = json.loads(room_dict['amenities'])
+                except:
+                    pass
+            if 'photos' in room_dict and room_dict['photos']:
+                try:
+                    room_dict['photos'] = json.loads(room_dict['photos'])
+                except:
+                    pass
+            rooms.append(room_dict)
+
+        conn.close()
+
+        return {"status": "success", "rooms": rooms}
+
+    except Exception as e:
+        logger.error(f"Error in direct_rooms: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+
 # Entry point for server startup
 if __name__ == "__main__":
     import uvicorn
