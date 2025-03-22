@@ -468,6 +468,177 @@ async def db_info():
     }
 
 
+@app.get("/direct-reset-absolute")
+async def direct_reset_absolute():
+    """Endpoint to directly reset and populate the database using raw SQLite with absolute path"""
+    import os
+    import sqlite3
+
+    try:
+        # 1. Get the absolute path for the database
+        from app.config import DATABASE_URL
+
+        # Extract file path from SQLite URL
+        if DATABASE_URL.startswith('sqlite:///'):
+            db_path = DATABASE_URL[10:]
+        else:
+            db_path = DATABASE_URL
+
+        # Make the path absolute
+        if not os.path.isabs(db_path):
+            db_path = os.path.join(os.getcwd(), db_path)
+
+        logger.info(f"Using absolute database path: {db_path}")
+
+        # 2. Delete existing database file if it exists
+        if os.path.exists(db_path):
+            os.remove(db_path)
+            logger.info(f"Deleted existing database file: {db_path}")
+
+        # 3. Create a new database directly with SQLite
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # 4. Create tables manually
+        # Users table
+        cursor.execute('''
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY,
+            telegram_id INTEGER UNIQUE NOT NULL,
+            username TEXT,
+            first_name TEXT,
+            last_name TEXT,
+            phone TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+
+        # Rooms table with all required columns
+        cursor.execute('''
+        CREATE TABLE rooms (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            room_type TEXT NOT NULL,
+            price_per_night REAL NOT NULL,
+            capacity INTEGER NOT NULL,
+            is_available INTEGER DEFAULT 1,
+            image_url TEXT,
+            photos TEXT,
+            video_url TEXT,
+            amenities TEXT
+        )
+        ''')
+
+        # Bookings table
+        cursor.execute('''
+        CREATE TABLE bookings (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            room_id INTEGER NOT NULL,
+            check_in TIMESTAMP NOT NULL,
+            check_out TIMESTAMP NOT NULL,
+            guests INTEGER DEFAULT 1,
+            total_price REAL NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            phone TEXT,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (room_id) REFERENCES rooms (id)
+        )
+        ''')
+
+        # Reviews table
+        cursor.execute('''
+        CREATE TABLE reviews (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            room_id INTEGER,
+            rating INTEGER NOT NULL,
+            comment TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (room_id) REFERENCES rooms (id)
+        )
+        ''')
+
+        # 5. Add sample rooms data
+        rooms = [
+            (
+                "Стандартный номер",
+                "Уютный номер с видом на горы",
+                "standard",
+                3000,
+                2,
+                1,
+                "https://example.com/standard.jpg",
+                "[]",
+                None,
+                '["Wi-Fi", "TV", "Холодильник"]'
+            ),
+            (
+                "Люкс",
+                "Просторный номер люкс с отдельной гостиной",
+                "luxury",
+                5000,
+                4,
+                1,
+                "https://example.com/luxury.jpg",
+                "[]",
+                None,
+                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]'
+            ),
+            (
+                "Семейный номер",
+                "Большой номер для всей семьи",
+                "family",
+                7000,
+                6,
+                1,
+                "https://example.com/family.jpg",
+                "[]",
+                None,
+                '["Wi-Fi", "TV", "Холодильник", "Детская кроватка", "Игровая зона"]'
+            )
+        ]
+
+        cursor.executemany('''
+        INSERT INTO rooms (name, description, room_type, price_per_night, capacity, is_available, image_url, photos, video_url, amenities)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', rooms)
+
+        # 6. Commit changes and close connection
+        conn.commit()
+        conn.close()
+
+        # 7. Set permissions as permissive as possible
+        try:
+            import stat
+            os.chmod(db_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
+            logger.info(f"Set permissive permissions on database file: {db_path}")
+        except Exception as e:
+            logger.warning(f"Could not set permissions on database file: {str(e)}")
+
+        # 8. Verify the tables were created
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [row[0] for row in cursor.fetchall()]
+        conn.close()
+
+        logger.info(f"Database has been successfully reset with sample data. Tables: {tables}")
+        return {
+            "status": "success",
+            "message": "База данных успешно сброшена и заполнена тестовыми данными напрямую через SQLite",
+            "path": db_path,
+            "tables": tables
+        }
+
+    except Exception as e:
+        logger.error(f"Error resetting database: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+
 # Entry point for server startup
 if __name__ == "__main__":
     import uvicorn
