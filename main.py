@@ -252,25 +252,22 @@ async def debug_info():
 @app.get("/reset-db")
 async def reset_database():
     """Temporary endpoint to reset the database during development"""
-    import os
-    from app.config import DATABASE_URL  # Adjust import based on your project structure
-
-    # Extract file path from SQLite URL
-    if DATABASE_URL.startswith('sqlite:///'):
-        db_path = DATABASE_URL[10:]
-    else:
-        db_path = DATABASE_URL
-
     try:
-        # Check if file exists
-        if os.path.exists(db_path):
-            # Delete the file
-            os.remove(db_path)
-            # Initialize database
-            await init_db()
-            return {"status": "success", "message": f"Database {db_path} reset successfully"}
-        else:
-            return {"status": "warning", "message": f"Database file {db_path} not found"}
+        # Use force_recreate=True to drop and recreate tables with sample data
+        await init_db(force_recreate=True)
+        return {"status": "success", "message": "База данных oqtoshsoy.db успешно сброшена и заполнена тестовыми данными"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# Add sample data endpoint
+@app.get("/add-sample-data")
+async def add_sample_data_endpoint():
+    """Endpoint to add sample data to the database"""
+    try:
+        from app.database import add_sample_data
+        await add_sample_data()
+        return {"status": "success", "message": "Добавлены примеры номеров"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

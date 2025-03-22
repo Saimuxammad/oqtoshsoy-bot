@@ -65,17 +65,97 @@ try:
                     yield session
 
 
-            async def init_db():
-                """Initialize database and create tables"""
+            async def init_db(force_recreate=False):
+                """Initialize database and create tables
+
+                Args:
+                    force_recreate (bool): If True, drop existing tables and recreate them
+                """
                 try:
+                    # Import models to ensure they are registered with Base
+                    from app.database.models import User, Room, Booking, Review
+
                     # Create all tables
                     async with engine.begin() as conn:
+                        if force_recreate:
+                            # Drop all tables first if force_recreate is True
+                            logger.info("Dropping all existing tables...")
+                            await conn.run_sync(Base.metadata.drop_all)
+
+                        # Create all tables
                         await conn.run_sync(Base.metadata.create_all)
 
                     logger.info("Database tables created successfully")
+
+                    # Add sample data when initializing a fresh database
+                    if force_recreate:
+                        await add_sample_data()
+
                     return True
                 except Exception as e:
                     logger.error(f"Error creating database tables: {str(e)}")
+                    raise
+
+
+            async def add_sample_data():
+                """Add sample data to the database"""
+                try:
+                    from app.database.models import Room
+                    from sqlalchemy import select
+
+                    # Create a session
+                    async with AsyncSessionLocal() as session:
+                        # Check if there are already rooms
+                        result = await session.execute(select(Room))
+                        if result.scalars().first() is not None:
+                            logger.info("Sample data already exists, skipping...")
+                            return
+
+                        # Add sample rooms
+                        standard_room = Room(
+                            name="Стандартный номер",
+                            description="Уютный номер с видом на горы",
+                            room_type="standard",
+                            price_per_night=3000,
+                            capacity=2,
+                            is_available=True,
+                            image_url="https://example.com/standard.jpg",
+                            photos="[]",  # Empty JSON array
+                            amenities='["Wi-Fi", "TV", "Холодильник"]'  # JSON array with amenities
+                        )
+
+                        luxury_room = Room(
+                            name="Люкс",
+                            description="Просторный номер люкс с отдельной гостиной",
+                            room_type="luxury",
+                            price_per_night=5000,
+                            capacity=4,
+                            is_available=True,
+                            image_url="https://example.com/luxury.jpg",
+                            photos="[]",
+                            amenities='["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]'
+                        )
+
+                        family_room = Room(
+                            name="Семейный номер",
+                            description="Большой номер для всей семьи",
+                            room_type="family",
+                            price_per_night=7000,
+                            capacity=6,
+                            is_available=True,
+                            image_url="https://example.com/family.jpg",
+                            photos="[]",
+                            amenities='["Wi-Fi", "TV", "Холодильник", "Детская кроватка", "Игровая зона"]'
+                        )
+
+                        # Add rooms to session
+                        session.add_all([standard_room, luxury_room, family_room])
+
+                        # Commit the session
+                        await session.commit()
+                        logger.info("Sample data added successfully")
+                except Exception as e:
+                    logger.error(f"Error adding sample data: {str(e)}")
                     raise
 
         except ImportError:
@@ -111,16 +191,90 @@ try:
                 db.close()
 
 
-        def init_db():
+        def init_db(force_recreate=False):
             """Initialize database and create tables"""
             try:
+                # Import models to ensure they are registered with Base
+                from app.database.models import User, Room, Booking, Review
+
+                if force_recreate:
+                    # Drop all tables first if force_recreate is True
+                    logger.info("Dropping all existing tables...")
+                    Base.metadata.drop_all(bind=engine)
+
                 # Create all tables
                 Base.metadata.create_all(bind=engine)
 
                 logger.info("Database tables created successfully")
+
+                # Add sample data
+                if force_recreate:
+                    add_sample_data()
+
                 return True
             except Exception as e:
                 logger.error(f"Error creating database tables: {str(e)}")
+                raise
+
+
+        def add_sample_data():
+            """Add sample data to the database"""
+            try:
+                from app.database.models import Room
+                from sqlalchemy import select
+
+                # Create a session
+                with SyncSessionLocal() as session:
+                    # Check if there are already rooms
+                    if session.query(Room).first() is not None:
+                        logger.info("Sample data already exists, skipping...")
+                        return
+
+                    # Add sample rooms
+                    standard_room = Room(
+                        name="Стандартный номер",
+                        description="Уютный номер с видом на горы",
+                        room_type="standard",
+                        price_per_night=3000,
+                        capacity=2,
+                        is_available=True,
+                        image_url="https://example.com/standard.jpg",
+                        photos="[]",  # Empty JSON array
+                        amenities='["Wi-Fi", "TV", "Холодильник"]'  # JSON array with amenities
+                    )
+
+                    luxury_room = Room(
+                        name="Люкс",
+                        description="Просторный номер люкс с отдельной гостиной",
+                        room_type="luxury",
+                        price_per_night=5000,
+                        capacity=4,
+                        is_available=True,
+                        image_url="https://example.com/luxury.jpg",
+                        photos="[]",
+                        amenities='["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]'
+                    )
+
+                    family_room = Room(
+                        name="Семейный номер",
+                        description="Большой номер для всей семьи",
+                        room_type="family",
+                        price_per_night=7000,
+                        capacity=6,
+                        is_available=True,
+                        image_url="https://example.com/family.jpg",
+                        photos="[]",
+                        amenities='["Wi-Fi", "TV", "Холодильник", "Детская кроватка", "Игровая зона"]'
+                    )
+
+                    # Add rooms to session
+                    session.add_all([standard_room, luxury_room, family_room])
+
+                    # Commit the session
+                    session.commit()
+                    logger.info("Sample data added successfully")
+            except Exception as e:
+                logger.error(f"Error adding sample data: {str(e)}")
                 raise
 
 except Exception as e:
@@ -143,7 +297,74 @@ except Exception as e:
             db.close()
 
 
-    def init_db():
+    def init_db(force_recreate=False):
+        # Import models to ensure they are registered with Base
+        from app.database.models import User, Room, Booking, Review
+
         Base.metadata.create_all(bind=engine)
         logger.info("Fallback database tables created successfully")
+
+        # Add sample data
+        add_sample_data()
+
         return True
+
+
+    def add_sample_data():
+        """Add sample data to the database"""
+        try:
+            from app.database.models import Room
+
+            # Create a session
+            with SessionLocal() as session:
+                # Check if there are already rooms
+                if session.query(Room).first() is not None:
+                    logger.info("Sample data already exists, skipping...")
+                    return
+
+                # Add sample rooms
+                standard_room = Room(
+                    name="Стандартный номер",
+                    description="Уютный номер с видом на горы",
+                    room_type="standard",
+                    price_per_night=3000,
+                    capacity=2,
+                    is_available=True,
+                    image_url="https://example.com/standard.jpg",
+                    photos="[]",  # Empty JSON array
+                    amenities='["Wi-Fi", "TV", "Холодильник"]'  # JSON array with amenities
+                )
+
+                luxury_room = Room(
+                    name="Люкс",
+                    description="Просторный номер люкс с отдельной гостиной",
+                    room_type="luxury",
+                    price_per_night=5000,
+                    capacity=4,
+                    is_available=True,
+                    image_url="https://example.com/luxury.jpg",
+                    photos="[]",
+                    amenities='["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]'
+                )
+
+                family_room = Room(
+                    name="Семейный номер",
+                    description="Большой номер для всей семьи",
+                    room_type="family",
+                    price_per_night=7000,
+                    capacity=6,
+                    is_available=True,
+                    image_url="https://example.com/family.jpg",
+                    photos="[]",
+                    amenities='["Wi-Fi", "TV", "Холодильник", "Детская кроватка", "Игровая зона"]'
+                )
+
+                # Add rooms to session
+                session.add_all([standard_room, luxury_room, family_room])
+
+                # Commit the session
+                session.commit()
+                logger.info("Sample data added successfully")
+        except Exception as e:
+            logger.error(f"Error adding sample data: {str(e)}")
+            raise
