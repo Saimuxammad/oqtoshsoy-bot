@@ -21,39 +21,87 @@ def seed_database():
             logger.info("Database already contains data. Skipping test data creation.")
             return
 
-        # Create sample rooms
+        # Create sample rooms - обновлено с полным списком номеров согласно прайсу
         rooms = [
             Room(
-                name="Стандартный номер",
-                description="Уютный стандартный номер с видом на горы. В номере: двуспальная кровать, телевизор, кондиционер, мини-бар, ванная комната с душем.",
+                name="Стандарт - 2х местный",
+                description="Уютный номер с видом на горы. Включает завтрак и доступ к детской площадке.",
                 room_type="standard",
-                price_per_night=3000,
+                price_per_night=700000,  # Цена ПН-ЧТ в сумах
                 capacity=2,
-                image_url="https://images.unsplash.com/photo-1566195992011-5f6b21e539aa?q=80&w=1287&auto=format&fit=crop"
+                image_url="https://i.imgur.com/ZXBtVw7.jpg"
             ),
             Room(
-                name="Люкс",
-                description="Просторный номер люкс с панорамным видом на горный ландшафт. В номере: большая двуспальная кровать, гостиная зона с диваном, телевизор, кондиционер, мини-бар, ванная комната с джакузи.",
+                name="Люкс - 2х местный",
+                description="Просторный номер с дополнительными удобствами. Включает завтрак и доступ к детской площадке.",
                 room_type="luxury",
-                price_per_night=5000,
+                price_per_night=900000,  # Цена ПН-ЧТ в сумах
                 capacity=2,
-                image_url="https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=1974&auto=format&fit=crop"
+                image_url="https://i.imgur.com/Ecz64bK.jpg"
             ),
             Room(
-                name="Семейный номер",
-                description="Просторный номер для семейного отдыха. В номере: две спальни с двуспальными кроватями, гостиная, телевизор, кондиционер, мини-бар, ванная комната с душем.",
-                room_type="family",
-                price_per_night=7000,
+                name="Стандарт - 4х местный",
+                description="Просторный номер для семьи или компании. Включает завтрак и доступ к детской площадке.",
+                room_type="standard_family",
+                price_per_night=1200000,  # Цена ПН-ЧТ в сумах
                 capacity=4,
-                image_url="https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?q=80&w=2070&auto=format&fit=crop"
+                image_url="https://i.imgur.com/nf1aE8m.jpg"
             ),
             Room(
-                name="Президентский люкс",
-                description="Эксклюзивный номер с максимальным комфортом и уединением. В номере: большая спальня с королевской кроватью, гостиная, кабинет, джакузи, сауна, терраса с видом на горы.",
-                room_type="suite",
-                price_per_night=12000,
-                capacity=2,
-                image_url="https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=2070&auto=format&fit=crop"
+                name="VIP малый - 4х местный",
+                description="Комфортабельный номер с улучшенной отделкой. Включает завтрак и доступ к детской площадке.",
+                room_type="vip_small",
+                price_per_night=1300000,  # Цена ПН-ЧТ в сумах
+                capacity=4,
+                image_url="https://i.imgur.com/Ecz64bK.jpg"
+            ),
+            Room(
+                name="VIP большой - 4х местный",
+                description="Просторный номер категории VIP с панорамным видом на горы. Включает завтрак и доступ к детской площадке.",
+                room_type="vip_large",
+                price_per_night=1600000,  # Цена ПН-ЧТ в сумах
+                capacity=4,
+                image_url="https://i.imgur.com/Ecz64bK.jpg"
+            ),
+            Room(
+                name="Апартамент - 4х местный",
+                description="Элитный номер с отдельной гостиной. Включает завтрак и доступ к детской площадке.",
+                room_type="apartment",
+                price_per_night=1800000,  # Цена ПН-ЧТ в сумах
+                capacity=4,
+                image_url="https://i.imgur.com/nf1aE8m.jpg"
+            ),
+            Room(
+                name="Котедж - 6 местный",
+                description="Отдельный коттедж с собственной территорией. Включает завтрак и доступ к детской площадке.",
+                room_type="cottage",
+                price_per_night=3000000,  # Цена ПН-ЧТ в сумах
+                capacity=6,
+                image_url="https://i.imgur.com/nf1aE8m.jpg"
+            ),
+            Room(
+                name="Президентский апартамент - 8 местный",
+                description="Эксклюзивные апартаменты с максимальным комфортом. Включает завтрак и доступ к детской площадке.",
+                room_type="presidential",
+                price_per_night=3800000,  # Цена ПН-ЧТ в сумах
+                capacity=8,
+                image_url="https://i.imgur.com/Ecz64bK.jpg"
+            ),
+            Room(
+                name="Тапчан маленький - 7 местный",
+                description="Уютный тапчан для отдыха на свежем воздухе. Идеально для групп.",
+                room_type="tapshan_small",
+                price_per_night=150000,  # Примерная цена
+                capacity=7,
+                image_url="https://i.imgur.com/ZXBtVw7.jpg"
+            ),
+            Room(
+                name="Тапчан большой - 15 местный",
+                description="Большой тапчан для больших компаний. Комфортный отдых на природе.",
+                room_type="tapshan_large",
+                price_per_night=300000,  # Примерная цена
+                capacity=15,
+                image_url="https://i.imgur.com/ZXBtVw7.jpg"
             )
         ]
 
@@ -61,10 +109,10 @@ def seed_database():
             db.add(room)
 
         db.commit()
-        logger.info("Test data successfully added to database.")
+        logger.info("Тестовые данные успешно добавлены в базу данных.")
     except Exception as e:
         db.rollback()
-        logger.error(f"Error creating test data: {e}")
+        logger.error(f"Ошибка при создании тестовых данных: {e}")
         raise
     finally:
         db.close()

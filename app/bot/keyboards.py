@@ -10,7 +10,7 @@ def main_keyboard():
     ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
-# Rooms keyboard
+# Rooms keyboard - обновлено с полным списком номеров согласно прайсу
 def rooms_keyboard(rooms):
     kb = []
     for room in rooms:
@@ -34,12 +34,15 @@ def room_detail_keyboard(room_id):
     ]
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
-# Support keyboard
+# Support keyboard - обновлено с контактами администратора
 def support_keyboard():
     kb = [
         [
             InlineKeyboardButton(text="📱 Позвонить", callback_data="call_support"),
-            InlineKeyboardButton(text="✉️ Написать администратору", url="https://t.me/admin_username")
+            InlineKeyboardButton(text="✉️ Написать администратору", url="https://t.me/Oqtosh_Soy")
+        ],
+        [
+            InlineKeyboardButton(text="📞 +99890 096 50 55", callback_data="phone_number")
         ],
         [InlineKeyboardButton(text="🔙 Главное меню", callback_data="back_to_main")]
     ]

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 import datetime
 import logging
+import json
 
 from app.database import get_db
 from app.database.crud import (
@@ -12,6 +13,7 @@ from app.database.crud import (
     get_available_rooms, create_booking, get_user_bookings
 )
 from app.bot.utils import calculate_booking_price
+from app.config import BOT_TOKEN, ADMIN_TELEGRAM_ID
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/web/templates")
@@ -54,6 +56,8 @@ async def get_rooms(db: AsyncSession = Depends(get_db)):
                     "description": room.description,
                     "type": room.room_type,
                     "price": room.price_per_night,
+                    "weekend_price": room.weekend_price if hasattr(room,
+                                                                   "weekend_price") and room.weekend_price else None,
                     "capacity": room.capacity,
                     "available": room.is_available,
                     "image_url": room.image_url
@@ -73,6 +77,22 @@ async def get_room_details(room_id: int, db: AsyncSession = Depends(get_db)):
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
 
+    # Парсим JSON-поля
+    amenities = []
+    photos = []
+
+    if room.amenities:
+        try:
+            amenities = json.loads(room.amenities)
+        except:
+            amenities = []
+
+    if room.photos:
+        try:
+            photos = json.loads(room.photos)
+        except:
+            photos = []
+
     return {
         "success": True,
         "room": {
@@ -81,9 +101,13 @@ async def get_room_details(room_id: int, db: AsyncSession = Depends(get_db)):
             "description": room.description,
             "type": room.room_type,
             "price": room.price_per_night,
+            "weekend_price": room.weekend_price if hasattr(room, "weekend_price") and room.weekend_price else None,
             "capacity": room.capacity,
             "available": room.is_available,
-            "image_url": room.image_url
+            "image_url": room.image_url,
+            "photos": photos,
+            "video_url": room.video_url,
+            "amenities": amenities
         }
     }
 
@@ -158,6 +182,40 @@ async def book_room(
             guests=guests,
             phone=phone
         )
+
+        # Отправляем уведомление администратору если настроено
+        try:
+            from aiogram import Bot
+            if ADMIN_TELEGRAM_ID and BOT_TOKEN:
+                bot = Bot(token=BOT_TOKEN)
+
+                # Формируем текст уведомления
+                booking_info = (
+                    f"📝 *Новое бронирование #{booking.id}*\n\n"
+                    f"🛏️ Номер: {room.name}\n"
+                    f"📅 Заезд: {check_in_date.strftime('%d.%m.%Y')}\n"
+                    f"📅 Выезд: {check_out_date.strftime('%d.%m.%Y')}\n"
+                    f"👥 Гостей: {guests}\n"
+                    f"⏱ Ночей: {(check_out_date - check_in_date).days}\n"
+                    f"💰 Сумма: {booking.total_price}₽\n\n"
+                    f"📱 Контакт: {phone if phone else 'Не указан'}\n"
+                    f"👤 Пользователь: {user.username if user.username else f'@{telegram_id}'}"
+                )
+
+                await bot.send_message(
+                    chat_id=ADMIN_TELEGRAM_ID,
+                    text=booking_info,
+                    parse_mode="Markdown"
+                )
+
+                # Отмечаем что администратор уведомлен
+                booking.admin_notified = True
+                await db.commit()
+                logger.info(f"Admin notification for booking #{booking.id} sent successfully")
+
+        except Exception as e:
+            logger.error(f"Error sending admin notification: {e}")
+            # Не прерываем процесс если уведомление не отправилось
 
         return {
             "success": True,

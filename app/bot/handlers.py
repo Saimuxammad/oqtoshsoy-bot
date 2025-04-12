@@ -80,13 +80,21 @@ async def room_details(callback: CallbackQuery, session: AsyncSession):
         await callback.answer("Номер не найден")
         return
 
+    # Формат цены: опционально добавить разные цены для будних и выходных
+    price_text = f"{room.price_per_night}₽"
+
     # Create room description text
     text = (
         f"🛏️ *{room.name}*\n\n"
         f"*Тип*: {room.room_type}\n"
         f"*Вместимость*: {room.capacity} чел.\n"
-        f"*Цена за ночь*: {room.price_per_night}₽\n\n"  # Use price_per_night
+        f"*Цена за ночь*: {price_text}\n\n"
         f"{room.description}\n\n"
+        f"*Включено*:\n"
+        f"- Завтрак\n"
+        f"- 1 час детская площадка\n\n"
+        f"*Время заезда*: 14:00\n"
+        f"*Время выезда*: 12:00\n\n"
         f"Для бронирования нажмите кнопку ниже."
     )
 
@@ -113,10 +121,30 @@ async def room_details(callback: CallbackQuery, session: AsyncSession):
 async def contact_support(message: Message):
     await message.answer(
         "📞 *Связь с поддержкой*\n\n"
-        "Если у вас возникли вопросы или вам нужна помощь, вы можете связаться с нами одним из следующих способов:",
+        "Если у вас возникли вопросы или вам нужна помощь, вы можете связаться с нами одним из следующих способов:\n\n"
+        "☎️ Телефон: +99890 096 50 55\n"
+        "✉️ Telegram: @Oqtosh_Soy",
         reply_markup=support_keyboard(),
         parse_mode="Markdown"
     )
+
+
+# Handler for phone number display
+@router.callback_query(F.data == "phone_number")
+async def show_phone_number(callback: CallbackQuery):
+    await callback.answer("Телефон администратора: +99890 096 50 55")
+
+
+# Handler for call support button
+@router.callback_query(F.data == "call_support")
+async def call_support(callback: CallbackQuery):
+    await callback.message.answer(
+        "📞 *Позвонить администратору*\n\n"
+        "Вы можете позвонить нам по номеру:\n"
+        "+99890 096 50 55\n\n"
+        "Часы работы: 9:00 - 18:00 (ПН-СБ)"
+    )
+    await callback.answer()
 
 
 # Handler for "Reviews" button
@@ -138,6 +166,42 @@ async def back_to_main(callback: CallbackQuery):
         reply_markup=main_keyboard()
     )
     await callback.message.delete()
+    await callback.answer()
+
+
+# Handler for returning to rooms list
+@router.callback_query(F.data == "back_to_rooms")
+async def back_to_rooms(callback: CallbackQuery, session: AsyncSession):
+    rooms = await get_all_rooms(session)
+    await callback.message.answer(
+        "🛏️ *Выберите категорию номера для подробной информации:*",
+        reply_markup=rooms_keyboard(rooms),
+        parse_mode="Markdown"
+    )
+    await callback.message.delete()
+    await callback.answer()
+
+
+# Handler for room reviews
+@router.callback_query(lambda c: c.data and c.data.startswith("reviews_"))
+async def room_reviews(callback: CallbackQuery, session: AsyncSession):
+    room_id = int(callback.data.split("_")[1])
+    reviews = await get_room_reviews(session, room_id)
+    room = await get_room(session, room_id)
+
+    if not reviews:
+        text = f"⭐ *Отзывы о номере \"{room.name}\"*\n\nПока нет отзывов об этом номере."
+    else:
+        text = f"⭐ *Отзывы о номере \"{room.name}\"*\n\n"
+        for review in reviews:
+            stars = "⭐" * review.rating
+            text += f"{stars}\n{review.comment}\n\n"
+
+    await callback.message.answer(
+        text,
+        reply_markup=room_detail_keyboard(room_id),
+        parse_mode="Markdown"
+    )
     await callback.answer()
 
 
