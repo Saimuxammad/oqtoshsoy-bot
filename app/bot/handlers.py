@@ -119,12 +119,13 @@ async def room_details(callback: CallbackQuery, session: AsyncSession):
 # Handler for "Contact Support" button
 @router.message(F.text == "📞 Связь с поддержкой")
 async def contact_support(message: Message):
-    # Используем простой текст без разметки для тестирования
     await message.answer(
         "📞 Связь с поддержкой\n\n"
-        "Если у вас возникли вопросы или вам нужна помощь, вы можете связаться с нами:\n\n"
+        "Если у вас возникли вопросы или вам нужна помощь, вы можете связаться с нами одним из следующих способов:\n\n"
         "☎️ Телефон: +99890 096 50 55\n"
-        "✉️ Telegram: @Oqtosh_Soy"
+        "✉️ Telegram: @Oqtosh_Soy",
+        reply_markup=support_keyboard(),
+        parse_mode=None  # Отключаем Markdown
     )
 
 
@@ -133,15 +134,14 @@ async def contact_support(message: Message):
 async def show_phone_number(callback: CallbackQuery):
     await callback.answer("Телефон администратора: +99890 096 50 55")
 
-
-# Handler for call support button
 @router.callback_query(F.data == "call_support")
 async def call_support(callback: CallbackQuery):
     await callback.message.answer(
-        "📞 *Позвонить администратору*\n\n"
+        "📞 Позвонить администратору\n\n"
         "Вы можете позвонить нам по номеру:\n"
         "+99890 096 50 55\n\n"
-        "Часы работы: 9:00 - 18:00 (ПН-СБ)"
+        "Часы работы: 9:00 - 18:00 (ПН-СБ)",
+        parse_mode=None  # Отключаем Markdown
     )
     await callback.answer()
 
