@@ -97,7 +97,8 @@ async def reset_database():
                 "https://i.imgur.com/ZXBtVw7.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник"]'
+                '["Wi-Fi", "TV", "Холодильник"]',
+                900000  # weekend_price
             ),
             (
                 "Люкс - 2х местный",
@@ -109,7 +110,8 @@ async def reset_database():
                 "https://i.imgur.com/Ecz64bK.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]'
+                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]',
+                1200000  # weekend_price
             ),
             (
                 "Стандарт - 4х местный",
@@ -121,7 +123,8 @@ async def reset_database():
                 "https://i.imgur.com/nf1aE8m.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Детская кроватка"]'
+                '["Wi-Fi", "TV", "Холодильник", "Детская кроватка"]',
+                1500000  # weekend_price
             ),
             (
                 "VIP малый - 4х местный",
@@ -133,7 +136,8 @@ async def reset_database():
                 "https://i.imgur.com/Ecz64bK.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]'
+                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]',
+                1700000  # weekend_price
             ),
             (
                 "VIP большой - 4х местный",
@@ -145,7 +149,8 @@ async def reset_database():
                 "https://i.imgur.com/Ecz64bK.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]'
+                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]',
+                1900000  # weekend_price
             ),
             (
                 "Апартамент - 4х местный",
@@ -157,7 +162,8 @@ async def reset_database():
                 "https://i.imgur.com/nf1aE8m.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Кухня"]'
+                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Кухня"]',
+                2200000  # weekend_price
             ),
             (
                 "Котедж - 6 местный",
@@ -169,7 +175,8 @@ async def reset_database():
                 "https://i.imgur.com/nf1aE8m.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Кухня", "Барбекю"]'
+                '["Wi-Fi", "TV", "Холодильник", "Кухня", "Барбекю"]',
+                3500000  # weekend_price
             ),
             (
                 "Президентский апартамент - 8 местный",
@@ -181,7 +188,8 @@ async def reset_database():
                 "https://i.imgur.com/Ecz64bK.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Кухня", "Сауна"]'
+                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Кухня", "Сауна"]',
+                4500000  # weekend_price
             ),
             (
                 "Тапчан маленький - 7 местный",
@@ -193,7 +201,8 @@ async def reset_database():
                 "https://i.imgur.com/ZXBtVw7.jpg",
                 "[]",
                 None,
-                '[]'
+                '[]',
+                200000  # weekend_price
             ),
             (
                 "Тапчан большой - 15 местный",
@@ -205,13 +214,14 @@ async def reset_database():
                 "https://i.imgur.com/ZXBtVw7.jpg",
                 "[]",
                 None,
-                '[]'
+                '[]',
+                400000  # weekend_price
             )
         ]
 
         cursor.executemany('''
-        INSERT INTO rooms (name, description, room_type, price_per_night, capacity, is_available, image_url, photos, video_url, amenities)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO rooms (name, description, room_type, price_per_night, capacity, is_available, image_url, photos, video_url, amenities, weekend_price)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', rooms)
 
         # 5. Commit changes and close connection
