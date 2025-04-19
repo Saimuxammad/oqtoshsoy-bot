@@ -108,6 +108,7 @@ async def get_room_details(room_id: int, db: AsyncSession = Depends(get_db)):
             "photos": photos,
             "video_url": room.video_url,
             "amenities": amenities
+            # Удалите строку "weekend_price REAL"
         }
     }
 
