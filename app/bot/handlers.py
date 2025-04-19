@@ -41,11 +41,11 @@ async def cmd_start(message: Message, session: AsyncSession):
 @router.message(F.text == "🏨 О курорте")
 async def about_resort(message: Message):
     await message.answer(
-        "🏨 *Курорт «Oqtoshsoy»*\n\n"
+        "🏨 Курорт «Oqtoshsoy»\n\n"
         "Наш курорт расположен в живописном горном ущелье, в 120 км от города Ташкент.\n\n"
-        "📍 *Расположение*: Ташкентская область, Бостанлыкский район\n"
-        "🏔 *Высота над уровнем моря*: 1200 м\n"
-        "🌡 *Климат*: Горный, умеренный\n\n"
+        "📍 Расположение: Ташкентская область, Бостанлыкский район\n"
+        "🏔 Высота над уровнем моря: 1200 м\n"
+        "🌡 Климат: Горный, умеренный\n\n"
         "На территории курорта:\n"
         "- Открытый и закрытый бассейны\n"
         "- Ресторан с национальной и европейской кухней\n"
@@ -53,7 +53,7 @@ async def about_resort(message: Message):
         "- Детская площадка\n"
         "- Зоны для пикника\n\n"
         "Мы работаем круглый год и предлагаем различные виды отдыха в зависимости от сезона.",
-        parse_mode="Markdown"
+        parse_mode=None
     )
 
 
@@ -64,9 +64,9 @@ async def show_rooms(message: Message, session: AsyncSession):
     rooms = await get_all_rooms(session)
 
     await message.answer(
-        "🛏️ *Выберите категорию номера для подробной информации:*",
+        "🛏️ Выберите категорию номера для подробной информации:",
         reply_markup=rooms_keyboard(rooms),
-        parse_mode="Markdown"
+        parse_mode=None
     )
 
 
@@ -83,18 +83,22 @@ async def room_details(callback: CallbackQuery, session: AsyncSession):
     # Формат цены: опционально добавить разные цены для будних и выходных
     price_text = f"{room.price_per_night}₽"
 
-    # Create room description text
+    # Добавляем цену выходного дня, если она есть
+    if hasattr(room, "weekend_price") and room.weekend_price:
+        price_text += f" (ПН-ЧТ) / {room.weekend_price}₽ (ПТ-ВС)"
+
+    # Create room description text без специальных символов Markdown
     text = (
-        f"🛏️ *{room.name}*\n\n"
-        f"*Тип*: {room.room_type}\n"
-        f"*Вместимость*: {room.capacity} чел.\n"
-        f"*Цена за ночь*: {price_text}\n\n"
+        f"🛏️ {room.name}\n\n"
+        f"Тип: {room.room_type}\n"
+        f"Вместимость: {room.capacity} чел.\n"
+        f"Цена за ночь: {price_text}\n\n"
         f"{room.description}\n\n"
-        f"*Включено*:\n"
+        f"Включено:\n"
         f"- Завтрак\n"
         f"- 1 час детская площадка\n\n"
-        f"*Время заезда*: 14:00\n"
-        f"*Время выезда*: 12:00\n\n"
+        f"Время заезда: 14:00\n"
+        f"Время выезда: 12:00\n\n"
         f"Для бронирования нажмите кнопку ниже."
     )
 
@@ -104,13 +108,13 @@ async def room_details(callback: CallbackQuery, session: AsyncSession):
             photo=room.image_url,
             caption=text,
             reply_markup=room_detail_keyboard(room.id),
-            parse_mode="Markdown"
+            parse_mode=None  # Отключаем Markdown
         )
     else:
         await callback.message.answer(
             text=text,
             reply_markup=room_detail_keyboard(room.id),
-            parse_mode="Markdown"
+            parse_mode=None  # Отключаем Markdown
         )
 
     await callback.answer()
@@ -134,6 +138,7 @@ async def contact_support(message: Message):
 async def show_phone_number(callback: CallbackQuery):
     await callback.answer("Телефон администратора: +99890 096 50 55")
 
+
 @router.callback_query(F.data == "call_support")
 async def call_support(callback: CallbackQuery):
     await callback.message.answer(
@@ -150,10 +155,10 @@ async def call_support(callback: CallbackQuery):
 @router.message(F.text == "⭐ Отзывы")
 async def show_reviews(message: Message, session: AsyncSession):
     await message.answer(
-        "⭐ *Отзывы о курорте*\n\n"
+        "⭐ Отзывы о курорте\n\n"
         "Здесь вы можете прочитать отзывы наших гостей или оставить свой отзыв.\n\n"
         "Чтобы оставить отзыв, пожалуйста, воспользуйтесь нашим веб-приложением или напишите отзыв напрямую боту.",
-        parse_mode="Markdown"
+        parse_mode=None
     )
 
 
@@ -173,9 +178,9 @@ async def back_to_main(callback: CallbackQuery):
 async def back_to_rooms(callback: CallbackQuery, session: AsyncSession):
     rooms = await get_all_rooms(session)
     await callback.message.answer(
-        "🛏️ *Выберите категорию номера для подробной информации:*",
+        "🛏️ Выберите категорию номера для подробной информации:",
         reply_markup=rooms_keyboard(rooms),
-        parse_mode="Markdown"
+        parse_mode=None
     )
     await callback.message.delete()
     await callback.answer()
@@ -189,9 +194,9 @@ async def room_reviews(callback: CallbackQuery, session: AsyncSession):
     room = await get_room(session, room_id)
 
     if not reviews:
-        text = f"⭐ *Отзывы о номере \"{room.name}\"*\n\nПока нет отзывов об этом номере."
+        text = f"⭐ Отзывы о номере \"{room.name}\"\n\nПока нет отзывов об этом номере."
     else:
-        text = f"⭐ *Отзывы о номере \"{room.name}\"*\n\n"
+        text = f"⭐ Отзывы о номере \"{room.name}\"\n\n"
         for review in reviews:
             stars = "⭐" * review.rating
             text += f"{stars}\n{review.comment}\n\n"
@@ -199,7 +204,7 @@ async def room_reviews(callback: CallbackQuery, session: AsyncSession):
     await callback.message.answer(
         text,
         reply_markup=room_detail_keyboard(room_id),
-        parse_mode="Markdown"
+        parse_mode=None  # Отключаем Markdown
     )
     await callback.answer()
 
