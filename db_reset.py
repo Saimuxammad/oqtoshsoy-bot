@@ -49,6 +49,7 @@ async def reset_database():
             photos TEXT,
             video_url TEXT,
             amenities TEXT
+            weekend_price REAL
         )
         ''')
 
