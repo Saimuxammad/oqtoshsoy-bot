@@ -15,7 +15,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///oqtoshsoy.db")
 
 # Web App
 HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", 8000))
+PORT = int(os.getenv("PORT", 8080))
 
 # Курорт
 RESORT_NAME = "Oqtoshsoy"

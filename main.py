@@ -39,24 +39,22 @@ dp.update.outer_middleware(DatabaseMiddleware())
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Set webhook when application starts
-    try:
-        webhook_info = await bot.get_webhook_info()
-        current_url = webhook_info.url if webhook_info else None
-        logger.info(f"Current webhook URL: {current_url}")
-
-        if current_url != WEBHOOK_URL:
-            logger.info(f"Setting webhook to: {WEBHOOK_URL}")
-            await bot.set_webhook(url=WEBHOOK_URL)
-            logger.info(f"Bot webhook successfully set to {WEBHOOK_URL}")
-        else:
-            logger.info(f"Bot webhook already set to {WEBHOOK_URL}")
-    except Exception as e:
-        logger.error(f"Failed to set webhook: {str(e)}")
-        # Важно! Не прерываем запуск приложения, даже если webhook не установлен
-
+    webhook_info = await bot.get_webhook_info()
+    if webhook_info.url != WEBHOOK_URL:
+        await bot.set_webhook(url=WEBHOOK_URL)
+    logger.info(f"Bot webhook set to {WEBHOOK_URL}")
     logger.info(f"Web app URL is {WEBAPP_URL}")
 
-    # Продолжаем запуск приложения
+    # Import and set up the router here
+    from app.bot.handlers import router as bot_router
+    if not any(router is bot_router for router in getattr(dp, "_sub_routers", [])):
+        dp.include_router(bot_router)
+        logger.info("Bot router registered")
+
+    # Initialize database here to ensure it's done during startup
+    await init_db()
+    logger.info("Database initialized")
+
     yield
 
     # Close bot session when application stops
