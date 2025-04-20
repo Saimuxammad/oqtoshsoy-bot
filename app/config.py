@@ -6,7 +6,7 @@ load_dotenv()
 
 # Telegram Bot configuration
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEBAPP_URL = os.getenv("WEBAPP_URL", "https://www.oqtosh-soy.uz/webapp")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://web-production-1c8d.up.railway.app/webapp")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://web-production-1c8d.up.railway.app/webhook")
 ADMIN_TELEGRAM_ID = os.getenv("ADMIN_TELEGRAM_ID", "")  # ID администратора для уведомлений
 
