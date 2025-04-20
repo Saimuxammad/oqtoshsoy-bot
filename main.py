@@ -38,23 +38,18 @@ dp.update.outer_middleware(DatabaseMiddleware())
 # Create context manager for FastAPI
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Set webhook when application starts
-    webhook_info = await bot.get_webhook_info()
-    if webhook_info.url != WEBHOOK_URL:
-        await bot.set_webhook(url=WEBHOOK_URL)
-    logger.info(f"Bot webhook set to {WEBHOOK_URL}")
+    try:
+        # Заключаем установку вебхука в блок try-except
+        webhook_info = await bot.get_webhook_info()
+        if webhook_info.url != WEBHOOK_URL:
+            await bot.set_webhook(url=WEBHOOK_URL)
+            logger.info(f"Bot webhook set to {WEBHOOK_URL}")
+    except Exception as e:
+        # Логируем ошибку, но продолжаем работу
+        logger.error(f"Failed to set webhook: {str(e)}")
+        logger.warning("Bot will not receive updates through webhook!")
+
     logger.info(f"Web app URL is {WEBAPP_URL}")
-
-    # Import and set up the router here
-    from app.bot.handlers import router as bot_router
-    if not any(router is bot_router for router in getattr(dp, "_sub_routers", [])):
-        dp.include_router(bot_router)
-        logger.info("Bot router registered")
-
-    # Initialize database here to ensure it's done during startup
-    await init_db()
-    logger.info("Database initialized")
-
     yield
 
     # Close bot session when application stops
