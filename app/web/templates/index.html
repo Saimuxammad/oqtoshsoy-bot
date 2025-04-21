@@ -43,6 +43,25 @@
 
 <!-- JavaScript для обработки галереи -->
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const tgApp = window.Telegram.WebApp;
+
+    try {
+        console.log("Initializing Telegram WebApp");
+        tgApp.expand();
+        tgApp.ready();
+        console.log("Telegram WebApp initialized successfully");
+    } catch (error) {
+        console.error("Error initializing Telegram WebApp:", error);
+        // Показать сообщение об ошибке пользователю
+        document.body.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <h2>Ошибка инициализации</h2>
+                <p>Не удалось подключиться к Telegram. Пожалуйста, попробуйте открыть приложение из Telegram.</p>
+                <p><small>Техническая информация: ${error.message}</small></p>
+            </div>
+        `;
+    }
     // Функция для создания карточки номера с фото и видео
     function createRoomCard(room) {
         let template = document.getElementById('roomCardTemplate').innerHTML;

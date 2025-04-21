@@ -30,16 +30,19 @@ class Room(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    room_type = Column(String(50), nullable=False)  # standard, luxury, suite, etc.
+    room_type = Column(String(50), nullable=False)  # standard, luxury, suite, tapchan
     price_per_night = Column(Float, nullable=False)
+    weekend_price = Column(Float, nullable=True)    # Цена за ночь в выходные дни
     capacity = Column(Integer, nullable=False)
     is_available = Column(Boolean, default=True)
     image_url = Column(String(500), nullable=True)
-    # Расширенные поля для фото и видео
+    # New fields added here:
     photos = Column(Text)  # JSON-массив URL фотографий
     video_url = Column(String(500), nullable=True)
     amenities = Column(Text)  # JSON-массив удобств в номере
-    weekend_price = Column(Float, nullable=True)  # Цена в выходные дни (ПТ-ВС)
+    meal_included = Column(Boolean, default=True)   # Включено ли питание
+    with_breakfast = Column(Boolean, default=True)  # Включен ли завтрак
+    season_type = Column(String(50), default="all") # Тип сезона (all, summer, winter)
 
     bookings = relationship("Booking", back_populates="room")
     reviews = relationship("Review", back_populates="room")
@@ -61,7 +64,7 @@ class Booking(Base):
     status = Column(String(20), default="pending")  # pending, confirmed, cancelled
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     phone = Column(String(20), nullable=True)
-    admin_notified = Column(Boolean, default=False)  # Флаг уведомления администратора
+    admin_notified = Column(Boolean, default=False) # Был ли уведомлен администратор
 
     user = relationship("User", back_populates="bookings")
     room = relationship("Room", back_populates="bookings")
@@ -85,21 +88,3 @@ class Review(Base):
 
     def __repr__(self):
         return f"<Review {self.id} - {self.rating}>"
-
-
-class Media(Base):
-    __tablename__ = "media"
-
-    id = Column(Integer, primary_key=True)
-    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
-    media_type = Column(String(20), nullable=False)  # photo, video
-    url = Column(String(500), nullable=False)
-    title = Column(String(255), nullable=True)
-    description = Column(Text, nullable=True)
-    is_main = Column(Boolean, default=False)
-    upload_date = Column(DateTime, default=datetime.datetime.utcnow)
-
-    room = relationship("Room")
-
-    def __repr__(self):
-        return f"<Media {self.id} - {self.media_type}>"

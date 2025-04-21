@@ -224,6 +224,158 @@ async def webapp():
         """)
 
 
+# Эндпоинт для веб-приложения Telegram
+@app.get("/webapp")
+async def webapp_endpoint():
+    """Эндпоинт для веб-приложения Telegram"""
+    file_path = "app/web/templates/index.html"
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type="text/html")
+    else:
+        # Базовая HTML страница, если файл не найден
+        logger.warning(f"Index.html file not found at {file_path}, using default template")
+        return HTMLResponse("""
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Курорт Oqtoshsoy</title>
+            <script src="https://telegram.org/js/telegram-web-app.js"></script>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                    background-color: #f5f5f5;
+                }
+                .container {
+                    max-width: 500px;
+                    margin: 0 auto;
+                    background: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
+                h1 {
+                    color: #333;
+                    text-align: center;
+                }
+                .rooms {
+                    margin-top: 20px;
+                }
+                .room {
+                    border: 1px solid #ddd;
+                    border-radius: 5px;
+                    padding: 15px;
+                    margin-bottom: 15px;
+                }
+                .room h3 {
+                    margin-top: 0;
+                }
+                .price {
+                    font-weight: bold;
+                    color: #2678b6;
+                }
+                .button {
+                    background-color: #2678b6;
+                    color: white;
+                    border: none;
+                    padding: 10px 15px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    width: 100%;
+                    margin-top: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Курорт Oqtoshsoy</h1>
+                <p>Добро пожаловать в систему бронирования нашего курорта!</p>
+
+                <div class="rooms">
+                    <div class="room">
+                        <h3>Стандартный номер</h3>
+                        <p>Уютный стандартный номер с видом на горы.</p>
+                        <p class="price">3000₽ за ночь</p>
+                        <button class="button" id="standard">Забронировать</button>
+                    </div>
+
+                    <div class="room">
+                        <h3>Люкс</h3>
+                        <p>Просторный номер люкс с отдельной гостиной.</p>
+                        <p class="price">5000₽ за ночь</p>
+                        <button class="button" id="lux">Забронировать</button>
+                    </div>
+
+                    <div class="room">
+                        <h3>Семейный номер</h3>
+                        <p>Большой номер для всей семьи.</p>
+                        <p class="price">7000₽ за ночь</p>
+                        <button class="button" id="family">Забронировать</button>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const tgApp = window.Telegram.WebApp;
+                    tgApp.expand();
+                    tgApp.ready();
+
+                    // Обработка клика по кнопкам
+                    document.querySelectorAll('.button').forEach(button => {
+                        button.addEventListener('click', function() {
+                            tgApp.sendData(JSON.stringify({
+                                action: 'book',
+                                room_type: this.id
+                            }));
+                            tgApp.close();
+                        });
+                    });
+                });
+            </script>
+        </body>
+        </html>
+        """)
+
+
+# Диагностический эндпоинт для проверки веб-приложения
+@app.get("/check-webapp")
+async def check_webapp():
+    """Диагностический эндпоинт для проверки веб-приложения"""
+    try:
+        import os
+        from app.config import WEBAPP_URL
+
+        file_path = "app/web/templates/index.html"
+        file_exists = os.path.exists(file_path)
+
+        file_content = None
+        if file_exists:
+            try:
+                with open(file_path, "r") as f:
+                    file_content = f.read(500) + "..."  # Первые 500 символов
+            except Exception as e:
+                file_content = f"Ошибка чтения файла: {str(e)}"
+
+        return {
+            "status": "ok",
+            "webapp_url": WEBAPP_URL,
+            "template_exists": file_exists,
+            "template_path": os.path.abspath(file_path) if file_exists else None,
+            "cwd": os.getcwd(),
+            "template_preview": file_content,
+            "telegram_js_included": "telegram-web-app.js" in (file_content or "")
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+
 @app.get("/debug")
 async def debug_info():
     """Debug endpoint to check paths and configuration"""
@@ -280,6 +432,7 @@ async def direct_reset():
     import asyncio
     import os
     import sqlite3
+    import json
 
     try:
         # 1. Delete existing database file if it exists
@@ -313,7 +466,7 @@ async def direct_reset():
         )
         ''')
 
-        # Rooms table with all required columns
+        # Обновленная таблица rooms с дополнительными полями
         cursor.execute('''
         CREATE TABLE rooms (
             id INTEGER PRIMARY KEY,
@@ -321,16 +474,20 @@ async def direct_reset():
             description TEXT,
             room_type TEXT NOT NULL,
             price_per_night REAL NOT NULL,
+            weekend_price REAL,
             capacity INTEGER NOT NULL,
             is_available INTEGER DEFAULT 1,
             image_url TEXT,
             photos TEXT,
             video_url TEXT,
-            amenities TEXT
+            amenities TEXT,
+            meal_included INTEGER DEFAULT 1,
+            with_breakfast INTEGER DEFAULT 1,
+            season_type TEXT DEFAULT 'all'
         )
         ''')
 
-        # Bookings table
+        # Bookings table с полем admin_notified
         cursor.execute('''
         CREATE TABLE bookings (
             id INTEGER PRIMARY KEY,
@@ -343,6 +500,7 @@ async def direct_reset():
             status TEXT DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             phone TEXT,
+            admin_notified INTEGER DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users (id),
             FOREIGN KEY (room_id) REFERENCES rooms (id)
         )
@@ -362,58 +520,199 @@ async def direct_reset():
         )
         ''')
 
-        # 4. Add sample rooms data
+        # 4. Добавляем обновленные номера
         rooms = [
+            # Стандартные номера
             (
-                "Стандартный номер",
-                "Уютный номер с видом на горы",
+                "Стандарт 2-х местный",
+                "Уютный номер для двух человек с видом на горы. Включает все необходимое для комфортного отдыха.",
                 "standard",
-                3000,
+                700000,   # будни (ПН-ЧТ)
+                900000,   # выходные (ПТ-ВС)
                 2,
                 1,
-                "https://example.com/standard.jpg",
+                "https://i.imgur.com/ZXBtVw7.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник"]'
+                json.dumps(["Wi-Fi", "TV", "Холодильник", "Кондиционер", "Душ"]),
+                1,
+                1,
+                "all"
             ),
             (
-                "Люкс",
-                "Просторный номер люкс с отдельной гостиной",
+                "Люкс 2-х местный",
+                "Просторный номер люкс с отдельной гостиной для двух человек. Повышенный уровень комфорта.",
                 "luxury",
-                5000,
+                900000,   # будни
+                1200000,  # выходные
+                2,
+                1,
+                "https://i.imgur.com/Ecz64bK.jpg",
+                "[]",
+                None,
+                json.dumps(["Wi-Fi", "TV", "Холодильник", "Кондиционер", "Ванная", "Мини-бар"]),
+                1,
+                1,
+                "all"
+            ),
+            (
+                "Стандарт 4-х местный",
+                "Номер с двумя спальнями для семьи или компании до 4 человек.",
+                "standard",
+                1200000,  # будни
+                1500000,  # выходные
                 4,
                 1,
-                "https://example.com/luxury.jpg",
+                "https://i.imgur.com/nf1aE8m.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]'
+                json.dumps(["Wi-Fi", "TV", "Холодильник", "Кондиционер", "Душ", "Детская кроватка (по запросу)"]),
+                1,
+                1,
+                "all"
             ),
             (
-                "Семейный номер",
-                "Большой номер для всей семьи",
-                "family",
-                7000,
-                6,
+                "VIP малый 4-х местный",
+                "Улучшенный номер для компании до 4 человек с дополнительными удобствами.",
+                "vip",
+                1300000,  # будни
+                1700000,  # выходные
+                4,
                 1,
-                "https://example.com/family.jpg",
+                "https://i.imgur.com/ZXBtVw7.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Детская кроватка", "Игровая зона"]'
+                json.dumps(["Wi-Fi", "Smart TV", "Холодильник", "Кондиционер", "Ванная", "Мини-кухня"]),
+                1,
+                1,
+                "all"
+            ),
+            (
+                "VIP большой 4-х местный",
+                "Премиум номер для компании до 4 человек. Просторные комнаты с повышенным комфортом.",
+                "vip",
+                1600000,  # будни
+                1900000,  # выходные
+                4,
+                1,
+                "https://i.imgur.com/Ecz64bK.jpg",
+                "[]",
+                None,
+                json.dumps(["Wi-Fi", "Smart TV", "Холодильник", "Кондиционер", "Джакузи", "Мини-кухня", "Терраса"]),
+                1,
+                1,
+                "all"
+            ),
+            (
+                "Апартамент 4-х местный",
+                "Апартаменты с отдельной гостиной и кухней для компании до 4 человек.",
+                "apartment",
+                1800000,  # будни
+                2200000,  # выходные
+                4,
+                1,
+                "https://i.imgur.com/nf1aE8m.jpg",
+                "[]",
+                None,
+                json.dumps(["Wi-Fi", "Smart TV", "Холодильник", "Кондиционер", "Ванная", "Полноценная кухня", "Гостиная"]),
+                1,
+                1,
+                "all"
+            ),
+            (
+                "Котедж 6-ти местный",
+                "Отдельный коттедж для большой семьи или компании до 6 человек с собственной территорией.",
+                "cottage",
+                3000000,  # будни
+                3500000,  # выходные
+                6,
+                1,
+                "https://i.imgur.com/ZXBtVw7.jpg",
+                "[]",
+                None,
+                json.dumps(["Wi-Fi", "Smart TV", "Холодильник", "Кондиционер", "Ванная", "Кухня", "Барбекю зона", "Терраса"]),
+                1,
+                1,
+                "all"
+            ),
+            (
+                "Президентский апартамент 8-ми местный",
+                "Эксклюзивные апартаменты высшего уровня для компании до 8 человек с максимальным комфортом.",
+                "president",
+                3800000,  # будни
+                4500000,  # выходные
+                8,
+                1,
+                "https://i.imgur.com/Ecz64bK.jpg",
+                "[]",
+                None,
+                json.dumps(["Wi-Fi", "Smart TV", "Холодильник", "Кондиционер", "Джакузи", "Сауна", "Кухня", "Бильярд", "Терраса"]),
+                1,
+                1,
+                "all"
+            ),
+            # Тапчаны
+            (
+                "Тапчан малый (7 местный)",
+                "Традиционный тапчан под открытым небом для отдыха компанией до 7 человек.",
+                "tapchan",
+                300000,   # единая цена
+                300000,   # та же цена
+                7,
+                1,
+                "https://i.imgur.com/nf1aE8m.jpg",
+                "[]",
+                None,
+                json.dumps(["Зона для пикника", "Мангал (по запросу)", "Доступ к общей инфраструктуре"]),
+                0,
+                0,
+                "all"
+            ),
+            (
+                "Тапчан большой (15 местный)",
+                "Большой тапчан для отдыха большой компанией до 15 человек.",
+                "tapchan",
+                500000,   # единая цена
+                500000,   # та же цена
+                15,
+                1,
+                "https://i.imgur.com/ZXBtVw7.jpg",
+                "[]",
+                None,
+                json.dumps(["Зона для пикника", "Мангал (по запросу)", "Доступ к общей инфраструктуре"]),
+                0,
+                0,
+                "all"
             )
         ]
 
         cursor.executemany('''
-        INSERT INTO rooms (name, description, room_type, price_per_night, capacity, is_available, image_url, photos, video_url, amenities)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO rooms (
+            name, 
+            description, 
+            room_type, 
+            price_per_night, 
+            weekend_price, 
+            capacity, 
+            is_available, 
+            image_url, 
+            photos, 
+            video_url, 
+            amenities,
+            meal_included,
+            with_breakfast,
+            season_type
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', rooms)
 
         # 5. Commit changes and close connection
         conn.commit()
         conn.close()
 
-        logger.info("Database has been successfully reset with sample data")
+        logger.info(f"Database has been successfully reset with {len(rooms)} rooms")
         return {"status": "success",
-                "message": "База данных успешно сброшена и заполнена тестовыми данными напрямую через SQLite"}
+                "message": f"База данных успешно сброшена и заполнена {len(rooms)} номерами напрямую через SQLite"}
 
     except Exception as e:
         logger.error(f"Error resetting database: {str(e)}")
@@ -473,6 +772,7 @@ async def direct_reset_absolute():
     """Endpoint to directly reset and populate the database using raw SQLite with absolute path"""
     import os
     import sqlite3
+    import json
 
     try:
         # 1. Get the absolute path for the database
@@ -513,7 +813,7 @@ async def direct_reset_absolute():
         )
         ''')
 
-        # Rooms table with all required columns
+        # Обновленная таблица rooms с дополнительными полями
         cursor.execute('''
         CREATE TABLE rooms (
             id INTEGER PRIMARY KEY,
@@ -521,16 +821,20 @@ async def direct_reset_absolute():
             description TEXT,
             room_type TEXT NOT NULL,
             price_per_night REAL NOT NULL,
+            weekend_price REAL,
             capacity INTEGER NOT NULL,
             is_available INTEGER DEFAULT 1,
             image_url TEXT,
             photos TEXT,
             video_url TEXT,
-            amenities TEXT
+            amenities TEXT,
+            meal_included INTEGER DEFAULT 1,
+            with_breakfast INTEGER DEFAULT 1,
+            season_type TEXT DEFAULT 'all'
         )
         ''')
 
-        # Bookings table
+        # Bookings table с полем admin_notified
         cursor.execute('''
         CREATE TABLE bookings (
             id INTEGER PRIMARY KEY,
@@ -543,6 +847,7 @@ async def direct_reset_absolute():
             status TEXT DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             phone TEXT,
+            admin_notified INTEGER DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users (id),
             FOREIGN KEY (room_id) REFERENCES rooms (id)
         )
@@ -562,49 +867,190 @@ async def direct_reset_absolute():
         )
         ''')
 
-        # 5. Add sample rooms data
+        # 5. Добавляем обновленные номера
         rooms = [
+            # Стандартные номера
             (
-                "Стандартный номер",
-                "Уютный номер с видом на горы",
+                "Стандарт 2-х местный",
+                "Уютный номер для двух человек с видом на горы. Включает все необходимое для комфортного отдыха.",
                 "standard",
-                3000,
+                700000,   # будни (ПН-ЧТ)
+                900000,   # выходные (ПТ-ВС)
                 2,
                 1,
-                "https://example.com/standard.jpg",
+                "https://i.imgur.com/ZXBtVw7.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник"]'
+                json.dumps(["Wi-Fi", "TV", "Холодильник", "Кондиционер", "Душ"]),
+                1,
+                1,
+                "all"
             ),
             (
-                "Люкс",
-                "Просторный номер люкс с отдельной гостиной",
+                "Люкс 2-х местный",
+                "Просторный номер люкс с отдельной гостиной для двух человек. Повышенный уровень комфорта.",
                 "luxury",
-                5000,
+                900000,   # будни
+                1200000,  # выходные
+                2,
+                1,
+                "https://i.imgur.com/Ecz64bK.jpg",
+                "[]",
+                None,
+                json.dumps(["Wi-Fi", "TV", "Холодильник", "Кондиционер", "Ванная", "Мини-бар"]),
+                1,
+                1,
+                "all"
+            ),
+            (
+                "Стандарт 4-х местный",
+                "Номер с двумя спальнями для семьи или компании до 4 человек.",
+                "standard",
+                1200000,  # будни
+                1500000,  # выходные
                 4,
                 1,
-                "https://example.com/luxury.jpg",
+                "https://i.imgur.com/nf1aE8m.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Джакузи", "Мини-бар"]'
+                json.dumps(["Wi-Fi", "TV", "Холодильник", "Кондиционер", "Душ", "Детская кроватка (по запросу)"]),
+                1,
+                1,
+                "all"
             ),
             (
-                "Семейный номер",
-                "Большой номер для всей семьи",
-                "family",
-                7000,
-                6,
+                "VIP малый 4-х местный",
+                "Улучшенный номер для компании до 4 человек с дополнительными удобствами.",
+                "vip",
+                1300000,  # будни
+                1700000,  # выходные
+                4,
                 1,
-                "https://example.com/family.jpg",
+                "https://i.imgur.com/ZXBtVw7.jpg",
                 "[]",
                 None,
-                '["Wi-Fi", "TV", "Холодильник", "Детская кроватка", "Игровая зона"]'
+                json.dumps(["Wi-Fi", "Smart TV", "Холодильник", "Кондиционер", "Ванная", "Мини-кухня"]),
+                1,
+                1,
+                "all"
+            ),
+            (
+                "VIP большой 4-х местный",
+                "Премиум номер для компании до 4 человек. Просторные комнаты с повышенным комфортом.",
+                "vip",
+                1600000,  # будни
+                1900000,  # выходные
+                4,
+                1,
+                "https://i.imgur.com/Ecz64bK.jpg",
+                "[]",
+                None,
+                json.dumps(["Wi-Fi", "Smart TV", "Холодильник", "Кондиционер", "Джакузи", "Мини-кухня", "Терраса"]),
+                1,
+                1,
+                "all"
+            ),
+            (
+                "Апартамент 4-х местный",
+                "Апартаменты с отдельной гостиной и кухней для компании до 4 человек.",
+                "apartment",
+                1800000,  # будни
+                2200000,  # выходные
+                4,
+                1,
+                "https://i.imgur.com/nf1aE8m.jpg",
+                "[]",
+                None,
+                json.dumps(["Wi-Fi", "Smart TV", "Холодильник", "Кондиционер", "Ванная", "Полноценная кухня", "Гостиная"]),
+                1,
+                1,
+                "all"
+            ),
+            (
+                "Котедж 6-ти местный",
+                "Отдельный коттедж для большой семьи или компании до 6 человек с собственной территорией.",
+                "cottage",
+                3000000,  # будни
+                3500000,  # выходные
+                6,
+                1,
+                "https://i.imgur.com/ZXBtVw7.jpg",
+                "[]",
+                None,
+                json.dumps(["Wi-Fi", "Smart TV", "Холодильник", "Кондиционер", "Ванная", "Кухня", "Барбекю зона", "Терраса"]),
+                1,
+                1,
+                "all"
+            ),
+            (
+                "Президентский апартамент 8-ми местный",
+                "Эксклюзивные апартаменты высшего уровня для компании до 8 человек с максимальным комфортом.",
+                "president",
+                3800000,  # будни
+                4500000,  # выходные
+                8,
+                1,
+                "https://i.imgur.com/Ecz64bK.jpg",
+                "[]",
+                None,
+                json.dumps(["Wi-Fi", "Smart TV", "Холодильник", "Кондиционер", "Джакузи", "Сауна", "Кухня", "Бильярд", "Терраса"]),
+                1,
+                1,
+                "all"
+            ),
+            # Тапчаны
+            (
+                "Тапчан малый (7 местный)",
+                "Традиционный тапчан под открытым небом для отдыха компанией до 7 человек.",
+                "tapchan",
+                300000,   # единая цена
+                300000,   # та же цена
+                7,
+                1,
+                "https://i.imgur.com/nf1aE8m.jpg",
+                "[]",
+                None,
+                json.dumps(["Зона для пикника", "Мангал (по запросу)", "Доступ к общей инфраструктуре"]),
+                0,
+                0,
+                "all"
+            ),
+            (
+                "Тапчан большой (15 местный)",
+                "Большой тапчан для отдыха большой компанией до 15 человек.",
+                "tapchan",
+                500000,   # единая цена
+                500000,   # та же цена
+                15,
+                1,
+                "https://i.imgur.com/ZXBtVw7.jpg",
+                "[]",
+                None,
+                json.dumps(["Зона для пикника", "Мангал (по запросу)", "Доступ к общей инфраструктуре"]),
+                0,
+                0,
+                "all"
             )
         ]
 
         cursor.executemany('''
-        INSERT INTO rooms (name, description, room_type, price_per_night, capacity, is_available, image_url, photos, video_url, amenities)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO rooms (
+            name, 
+            description, 
+            room_type, 
+            price_per_night, 
+            weekend_price, 
+            capacity, 
+            is_available, 
+            image_url, 
+            photos, 
+            video_url, 
+            amenities,
+            meal_included,
+            with_breakfast,
+            season_type
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', rooms)
 
         # 6. Commit changes and close connection
