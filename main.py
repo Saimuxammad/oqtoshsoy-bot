@@ -228,117 +228,119 @@ async def webapp():
 @app.get("/webapp")
 async def webapp_endpoint():
     """Эндпоинт для веб-приложения Telegram"""
-    file_path = "app/web/templates/index.html"
-    if os.path.exists(file_path):
-        return FileResponse(file_path, media_type="text/html")
-    else:
-        # Базовая HTML страница, если файл не найден
-        logger.warning(f"Index.html file not found at {file_path}, using default template")
-        return HTMLResponse("""
-        <!DOCTYPE html>
-        <html lang="ru">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Курорт Oqtoshsoy</title>
-            <script src="https://telegram.org/js/telegram-web-app.js"></script>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    margin: 0;
-                    padding: 20px;
-                    background-color: #f5f5f5;
-                }
-                .container {
-                    max-width: 500px;
-                    margin: 0 auto;
-                    background: white;
-                    padding: 20px;
-                    border-radius: 10px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                }
-                h1 {
-                    color: #333;
-                    text-align: center;
-                }
-                .rooms {
-                    margin-top: 20px;
-                }
-                .room {
-                    border: 1px solid #ddd;
-                    border-radius: 5px;
-                    padding: 15px;
-                    margin-bottom: 15px;
-                }
-                .room h3 {
-                    margin-top: 0;
-                }
-                .price {
-                    font-weight: bold;
-                    color: #2678b6;
-                }
-                .button {
-                    background-color: #2678b6;
-                    color: white;
-                    border: none;
-                    padding: 10px 15px;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    width: 100%;
-                    margin-top: 10px;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Курорт Oqtoshsoy</h1>
-                <p>Добро пожаловать в систему бронирования нашего курорта!</p>
+    try:
+        file_path = "app/web/templates/index.html"
+        if os.path.exists(file_path):
+            logger.info(f"Файл найден: {file_path}")
+            with open(file_path, "r") as f:
+                content = f.read()
 
-                <div class="rooms">
-                    <div class="room">
-                        <h3>Стандартный номер</h3>
-                        <p>Уютный стандартный номер с видом на горы.</p>
-                        <p class="price">3000₽ за ночь</p>
-                        <button class="button" id="standard">Забронировать</button>
-                    </div>
+            # Возвращаем содержимое напрямую как HTML
+            response = HTMLResponse(content=content)
 
-                    <div class="room">
-                        <h3>Люкс</h3>
-                        <p>Просторный номер люкс с отдельной гостиной.</p>
-                        <p class="price">5000₽ за ночь</p>
-                        <button class="button" id="lux">Забронировать</button>
-                    </div>
+            # Добавляем заголовки CORS
+            response.headers["Access-Control-Allow-Origin"] = "*"
 
-                    <div class="room">
-                        <h3>Семейный номер</h3>
-                        <p>Большой номер для всей семьи.</p>
-                        <p class="price">7000₽ за ночь</p>
-                        <button class="button" id="family">Забронировать</button>
-                    </div>
+            return response
+        else:
+            # Базовая HTML страница, если файл не найден
+            logger.warning(f"Файл не найден: {file_path}")
+            return HTMLResponse("""
+            <!DOCTYPE html>
+            <html lang="ru">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Курорт Oqtoshsoy</title>
+                <script src="https://telegram.org/js/telegram-web-app.js"></script>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                        background-color: #f5f5f5;
+                    }
+                    .container {
+                        max-width: 500px;
+                        margin: 0 auto;
+                        background: white;
+                        padding: 20px;
+                        border-radius: 10px;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    }
+                    h1 {
+                        color: #333;
+                        text-align: center;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Курорт Oqtoshsoy</h1>
+                    <p>Добро пожаловать в систему бронирования нашего курорта!</p>
+                    <p>Это резервная страница. Основной шаблон не найден.</p>
                 </div>
-            </div>
-
-            <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const tgApp = window.Telegram.WebApp;
-                    tgApp.expand();
-                    tgApp.ready();
-
-                    // Обработка клика по кнопкам
-                    document.querySelectorAll('.button').forEach(button => {
-                        button.addEventListener('click', function() {
-                            tgApp.sendData(JSON.stringify({
-                                action: 'book',
-                                room_type: this.id
-                            }));
-                            tgApp.close();
-                        });
-                    });
-                });
-            </script>
+            </body>
+            </html>
+            """)
+    except Exception as e:
+        logger.error(f"Ошибка в обработчике webapp: {str(e)}")
+        return HTMLResponse(f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Ошибка</title></head>
+        <body>
+            <h1>Произошла ошибка</h1>
+            <p>{str(e)}</p>
         </body>
         </html>
-        """)
+        """, status_code=500)
+
+    @app.get("/check-files")
+    async def check_files():
+        """Проверка наличия файлов в приложении"""
+        try:
+            # Проверяем наличие файла index.html
+            template_path = "app/web/templates/index.html"
+            template_exists = os.path.exists(template_path)
+
+            # Пытаемся прочитать содержимое файла
+            content_preview = None
+            if template_exists:
+                try:
+                    with open(template_path, "r") as f:
+                        content = f.read()
+                    content_preview = content[:200] + "..." if len(content) > 200 else content
+                except Exception as file_error:
+                    content_preview = f"Ошибка чтения файла: {str(file_error)}"
+
+            # Проверяем структуру каталогов
+            dirs = {
+                "app": os.path.exists("app"),
+                "app/web": os.path.exists("app/web"),
+                "app/web/templates": os.path.exists("app/web/templates"),
+                "static": os.path.exists("static")
+            }
+
+            # Если app существует, проверяем его содержимое
+            app_content = os.listdir("app") if dirs["app"] else []
+            web_content = os.listdir("app/web") if dirs["app/web"] else []
+            templates_content = os.listdir("app/web/templates") if dirs["app/web/templates"] else []
+
+            # Возвращаем результаты
+            return {
+                "template_exists": template_exists,
+                "template_path": os.path.abspath(template_path) if template_exists else None,
+                "template_preview": content_preview,
+                "directories": dirs,
+                "app_content": app_content,
+                "web_content": web_content,
+                "templates_content": templates_content,
+                "current_dir": os.getcwd(),
+                "current_dir_content": os.listdir()
+            }
+        except Exception as e:
+            return {"error": str(e)}
 
 
 # Диагностический эндпоинт для проверки веб-приложения
@@ -1264,3 +1266,72 @@ if __name__ == "__main__":
 
     # Start with reload=False until router issues are fixed
     uvicorn.run("main:app", host=HOST, port=8001, reload=False)
+
+
+@app.post("/fix-webapp-route")
+async def fix_webapp_route(request: Request):
+    """Эндпоинт для исправления маршрутов webapp"""
+    try:
+        # Получаем данные запроса
+        data = await request.json()
+        update_routes = data.get("update_routes", False)
+
+        if update_routes:
+            # Проверяем наличие файла шаблона
+            file_path = "app/web/templates/index.html"
+            file_exists = os.path.exists(file_path)
+
+            # Проверяем доступность маршрута /webapp
+            webapp_route = [route for route in app.routes if route.path == "/webapp"]
+
+            result = {
+                "file_exists": file_exists,
+                "webapp_route_exists": len(webapp_route) > 0,
+                "routes_fixed": False
+            }
+
+            # Регистрируем маршрут заново, если файл существует
+            if file_exists and not result["webapp_route_exists"]:
+                # Удаляем текущий маршрут, если он есть
+                app.routes = [route for route in app.routes if route.path != "/webapp"]
+
+                # Добавляем маршрут заново
+                @app.get("/webapp")
+                async def webapp_fixed():
+                    return FileResponse(file_path, media_type="text/html")
+
+                result["routes_fixed"] = True
+
+            return result
+        else:
+            return {"message": "No action requested"}
+
+    except Exception as e:
+        logger.error(f"Error fixing webapp routes: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/webapp-test")
+async def webapp_test():
+    """Простая тестовая страница для проверки работы маршрута"""
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Тестовая страница</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <h1>Тестовая страница webapp</h1>
+        <p>Если вы видите эту страницу, значит маршрут работает корректно.</p>
+        <script>
+            // Простой скрипт для проверки
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log("Страница загружена успешно");
+                document.body.innerHTML += "<p>JavaScript работает!</p>";
+            });
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
