@@ -1,207 +1,612 @@
-<!-- Заменяем только часть, отвечающую за карточки номеров -->
-<div class="row" id="roomsContainer">
-    <!-- Здесь будут карточки номеров -->
-    <!-- Обновленные карточки включают галерею фото и видео -->
-    <template id="roomCardTemplate">
-        <div class="col-md-12 mb-4">
-            <div class="room-card">
-                <div id="carouselRoom{id}" class="carousel slide" data-bs-ride="carousel">
-                    <div class="carousel-inner">
-                        <div class="carousel-item active">
-                            <img src="{image_url}" alt="{name}" class="room-img" />
-                        </div>
-                        <!-- дополнительные фото будут добавлены динамически -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Курорт Oqtoshsoy</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Telegram WebApp JS -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background-color: var(--tg-theme-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #222);
+            padding-bottom: 60px;
+        }
+        .room-card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-color: var(--tg-theme-bg-color, #fff);
+            margin-bottom: 15px;
+        }
+        .room-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+        .tab-content {
+            padding-top: 20px;
+        }
+        .navbar {
+            background-color: var(--tg-theme-bg-color, #fff);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .form-container {
+            background-color: var(--tg-theme-bg-color, #fff);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-3">
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="rooms-tab" data-bs-toggle="tab" data-bs-target="#rooms" type="button" role="tab" aria-controls="rooms" aria-selected="true">Номера</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking" type="button" role="tab" aria-controls="booking" aria-selected="false">Бронирование</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button" role="tab" aria-controls="about" aria-selected="false">О курорте</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <!-- Вкладка с номерами -->
+            <div class="tab-pane fade show active" id="rooms" role="tabpanel" aria-labelledby="rooms-tab">
+                <div id="loading-rooms" class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
                     </div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselRoom{id}" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Предыдущий</span>
-                    </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#carouselRoom{id}" data-bs-slide="next">
-                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Следующий</span>
-                    </button>
                 </div>
-                <div class="card-body p-3">
-                    <h5 class="card-title">{name}</h5>
-                    <p class="card-text">{description}</p>
-                    <div class="d-flex flex-wrap mb-2">
-                        {amenities}
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-primary fw-bold">{price}</span>
-                        <button class="btn btn-sm btn-primary book-room-btn" data-room-id="{id}">Забронировать</button>
-                    </div>
-                    <div class="mt-2">
-                        <small class="text-muted">Вместимость: {capacity} чел.</small>
-                        {video}
+
+                <div class="row" id="roomsContainer">
+                    <!-- Здесь будут карточки номеров -->
+                    <template id="roomCardTemplate">
+                        <div class="col-md-12 mb-4">
+                            <div class="room-card">
+                                <div id="carouselRoom{id}" class="carousel slide" data-bs-ride="carousel">
+                                    <div class="carousel-inner">
+                                        <div class="carousel-item active">
+                                            <img src="{image_url}" alt="{name}" class="room-img" />
+                                        </div>
+                                        <!-- дополнительные фото будут добавлены динамически -->
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselRoom{id}" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Предыдущий</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#carouselRoom{id}" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Следующий</span>
+                                    </button>
+                                </div>
+                                <div class="card-body p-3">
+                                    <h5 class="card-title">{name}</h5>
+                                    <p class="card-text">{description}</p>
+                                    <div class="d-flex flex-wrap mb-2">
+                                        {amenities}
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-primary fw-bold">{price}</span>
+                                        <button class="btn btn-sm btn-primary book-room-btn" data-room-id="{id}">Забронировать</button>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">Вместимость: {capacity} чел.</small>
+                                        {video}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Вкладка бронирования -->
+            <div class="tab-pane fade" id="booking" role="tabpanel" aria-labelledby="booking-tab">
+                <div class="form-container">
+                    <h3 class="mb-4">Забронировать номер</h3>
+                    <form id="bookingForm">
+                        <div class="mb-3">
+                            <label for="roomSelect" class="form-label">Выберите номер</label>
+                            <select class="form-select" id="roomSelect" required>
+                                <option value="" selected disabled>Выберите номер</option>
+                                <!-- Опции будут добавлены динамически -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="checkInDate" class="form-label">Дата заезда</label>
+                            <input type="date" class="form-control" id="checkInDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="checkOutDate" class="form-label">Дата выезда</label>
+                            <input type="date" class="form-control" id="checkOutDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="guestsNumber" class="form-label">Количество гостей</label>
+                            <input type="number" class="form-control" id="guestsNumber" min="1" value="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phoneNumber" class="form-label">Контактный телефон</label>
+                            <input type="tel" class="form-control" id="phoneNumber" placeholder="+998 __ ___ __ __">
+                        </div>
+                        <div class="mb-3" id="price-info" style="display: none;">
+                            <div class="alert alert-info">
+                                <p class="mb-0">Итоговая стоимость: <span id="totalPrice">0</span> сум</p>
+                                <p class="mb-0">Количество ночей: <span id="nightsCount">0</span></p>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" id="submitBtn">Забронировать</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Вкладка о курорте -->
+            <div class="tab-pane fade" id="about" role="tabpanel" aria-labelledby="about-tab">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title">О курорте Oqtoshsoy</h3>
+                        <p class="card-text">Наш курорт расположен в живописном горном ущелье, в 120 км от города Ташкент.</p>
+                        <p><strong>Расположение:</strong> Ташкентская область, Бостанлыкский район</p>
+                        <p><strong>Высота над уровнем моря:</strong> 1200 м</p>
+                        <p><strong>На территории курорта:</strong></p>
+                        <ul>
+                            <li>Открытый и закрытый бассейны</li>
+                            <li>Ресторан с национальной и европейской кухней</li>
+                            <li>SPA-центр</li>
+                            <li>Детская площадка</li>
+                            <li>Зоны для пикника</li>
+                        </ul>
+                        <p>Мы работаем круглый год и предлагаем различные виды отдыха в зависимости от сезона.</p>
+                        <p><strong>Контакты:</strong></p>
+                        <p>Телефон: +99890 096 50 55</p>
                     </div>
                 </div>
             </div>
         </div>
-    </template>
-</div>
+    </div>
 
-<!-- JavaScript для обработки галереи -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-    const tgApp = window.Telegram.WebApp;
-
-    try {
-        console.log("Initializing Telegram WebApp");
-        tgApp.expand();
-        tgApp.ready();
-        console.log("Telegram WebApp initialized successfully");
-    } catch (error) {
-        console.error("Error initializing Telegram WebApp:", error);
-        // Показать сообщение об ошибке пользователю
-        document.body.innerHTML = `
-            <div style="text-align: center; padding: 20px;">
-                <h2>Ошибка инициализации</h2>
-                <p>Не удалось подключиться к Telegram. Пожалуйста, попробуйте открыть приложение из Telegram.</p>
-                <p><small>Техническая информация: ${error.message}</small></p>
+    <!-- Модальное окно для сообщений -->
+    <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="messageModalLabel">Сообщение</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modalMessage">
+                    <!-- Текст сообщения будет добавлен динамически -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                </div>
             </div>
-        `;
-    }
-    // Функция для создания карточки номера с фото и видео
-    function createRoomCard(room) {
-        let template = document.getElementById('roomCardTemplate').innerHTML;
+        </div>
+    </div>
 
-        // Заменяем плейсхолдеры
-        template = template.replace(/{id}/g, room.id);
-        template = template.replace(/{name}/g, room.name);
-        template = template.replace(/{description}/g, room.description || 'Нет описания');
-        template = template.replace(/{image_url}/g, room.image_url || 'https://via.placeholder.com/400x200?text=Нет+изображения');
-        template = template.replace(/{price}/g, `${room.price}₽/ночь`);
-        template = template.replace(/{capacity}/g, room.capacity);
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Основной JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tgApp = window.Telegram?.WebApp;
 
-        // Обработка удобств
-        let amenitiesHtml = '';
-        if (room.amenities && room.amenities.length > 0) {
-            amenitiesHtml = room.amenities.map(amenity =>
-                `<span class="badge bg-light text-dark me-1 mb-1">${amenity}</span>`
-            ).join('');
-        }
-        template = template.replace(/{amenities}/g, amenitiesHtml);
+            try {
+                console.log("Initializing Telegram WebApp");
+                if (tgApp) {
+                    tgApp.expand();
+                    tgApp.ready();
+                    console.log("Telegram WebApp initialized successfully");
+                } else {
+                    console.warn("Telegram WebApp not available");
+                    showError("Данное приложение должно быть открыто из Telegram");
+                }
+            } catch (error) {
+                console.error("Error initializing Telegram WebApp:", error);
+                showError("Ошибка инициализации: " + error.message);
+            }
 
-        // Обработка видео
-        let videoHtml = '';
-        if (room.video_url) {
-            videoHtml = `<button class="btn btn-sm btn-outline-secondary mt-2"
-                          onclick="showVideo('${room.video_url}', '${room.name}')">
-                          <i class="bi bi-play-circle"></i> Смотреть видео
-                        </button>`;
-        }
-        template = template.replace(/{video}/g, videoHtml);
+            // Загрузка номеров при старте
+            loadRooms();
 
-        // Создаем элемент из HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = template;
-        const roomCard = tempDiv.firstElementChild;
-
-        // Добавляем дополнительные фото если есть
-        if (room.photos && room.photos.length > 0) {
-            const carouselInner = roomCard.querySelector('.carousel-inner');
-            room.photos.forEach((photo, index) => {
-                const photoItem = document.createElement('div');
-                photoItem.className = 'carousel-item';
-                photoItem.innerHTML = `<img src="${photo}" alt="${room.name} - фото ${index+2}" class="room-img">`;
-                carouselInner.appendChild(photoItem);
+            // Обработчик формы бронирования
+            document.getElementById('bookingForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                bookRoom();
             });
-        }
 
-        return roomCard;
-    }
+            // Установка минимальной даты для выбора (сегодня)
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('checkInDate').setAttribute('min', today);
+            document.getElementById('checkOutDate').setAttribute('min', today);
 
-    // Функция для показа видео
-    function showVideo(videoUrl, roomName) {
-        // Создаем модальное окно для видео
-        const modalHtml = `
-            <div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">${roomName} - Видео</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="ratio ratio-16x9">
-                                <iframe src="${videoUrl}" allowfullscreen></iframe>
+            // Обработчик изменения даты заезда
+            document.getElementById('checkInDate').addEventListener('change', function() {
+                const checkInDate = new Date(this.value);
+                checkInDate.setDate(checkInDate.getDate() + 1);
+                const minCheckOutDate = checkInDate.toISOString().split('T')[0];
+                document.getElementById('checkOutDate').setAttribute('min', minCheckOutDate);
+
+                // Если текущая дата выезда меньше новой минимальной, устанавливаем новую
+                const currentCheckOutDate = document.getElementById('checkOutDate').value;
+                if (currentCheckOutDate && new Date(currentCheckOutDate) <= new Date(this.value)) {
+                    document.getElementById('checkOutDate').value = minCheckOutDate;
+                }
+
+                calculatePrice();
+            });
+
+            // Обработчики для расчета цены при изменении параметров
+            document.getElementById('checkOutDate').addEventListener('change', calculatePrice);
+            document.getElementById('roomSelect').addEventListener('change', calculatePrice);
+            document.getElementById('guestsNumber').addEventListener('change', calculatePrice);
+
+            // Функция для создания карточки номера с фото и видео
+            function createRoomCard(room) {
+                let template = document.getElementById('roomCardTemplate').innerHTML;
+
+                // Заменяем плейсхолдеры
+                template = template.replace(/{id}/g, room.id);
+                template = template.replace(/{name}/g, room.name);
+                template = template.replace(/{description}/g, room.description || 'Нет описания');
+                template = template.replace(/{image_url}/g, room.image_url || 'https://via.placeholder.com/400x200?text=Нет+изображения');
+
+                // Форматирование цены с разделением разрядов
+                const formatPrice = (price) => {
+                    return new Intl.NumberFormat('ru-RU').format(price);
+                };
+
+                // Обработка цены (будни/выходные)
+                let priceText = '';
+                if (room.weekend_price && room.weekend_price !== room.price) {
+                    priceText = `${formatPrice(room.price)}₽ (ПН-ЧТ) / ${formatPrice(room.weekend_price)}₽ (ПТ-ВС)`;
+                } else {
+                    priceText = `${formatPrice(room.price)}₽/ночь`;
+                }
+                template = template.replace(/{price}/g, priceText);
+
+                template = template.replace(/{capacity}/g, room.capacity);
+
+                // Обработка удобств
+                let amenitiesHtml = '';
+                if (room.amenities && room.amenities.length > 0) {
+                    amenitiesHtml = room.amenities.map(amenity =>
+                        `<span class="badge bg-light text-dark me-1 mb-1">${amenity}</span>`
+                    ).join('');
+                }
+                template = template.replace(/{amenities}/g, amenitiesHtml);
+
+                // Обработка видео
+                let videoHtml = '';
+                if (room.video_url) {
+                    videoHtml = `<button class="btn btn-sm btn-outline-secondary mt-2"
+                                  onclick="showVideo('${room.video_url}', '${room.name}')">
+                                  <i class="bi bi-play-circle"></i> Смотреть видео
+                                </button>`;
+                }
+                template = template.replace(/{video}/g, videoHtml);
+
+                // Создаем элемент из HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = template;
+                const roomCard = tempDiv.firstElementChild;
+
+                // Добавляем дополнительные фото если есть
+                if (room.photos && room.photos.length > 0) {
+                    const carouselInner = roomCard.querySelector('.carousel-inner');
+                    room.photos.forEach((photo, index) => {
+                        const photoItem = document.createElement('div');
+                        photoItem.className = 'carousel-item';
+                        photoItem.innerHTML = `<img src="${photo}" alt="${room.name} - фото ${index+2}" class="room-img">`;
+                        carouselInner.appendChild(photoItem);
+                    });
+                }
+
+                // Добавляем обработчик клика на кнопке бронирования
+                roomCard.querySelector('.book-room-btn').addEventListener('click', function() {
+                    document.getElementById('roomSelect').value = room.id;
+
+                    // Переключение на вкладку бронирования
+                    const bookingTab = document.getElementById('booking-tab');
+                    const bookingTabInstance = new bootstrap.Tab(bookingTab);
+                    bookingTabInstance.show();
+
+                    calculatePrice();
+                });
+
+                return roomCard;
+            }
+
+            // Функция для показа видео
+            window.showVideo = function(videoUrl, roomName) {
+                // Создаем модальное окно для видео
+                const modalHtml = `
+                    <div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">${roomName} - Видео</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="ratio ratio-16x9">
+                                        <iframe src="${videoUrl}" allowfullscreen></iframe>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        `;
+                `;
 
-        // Добавляем модальное окно на страницу
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = modalHtml;
-        document.body.appendChild(tempDiv.firstElementChild);
+                // Добавляем модальное окно на страницу
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = modalHtml;
+                document.body.appendChild(tempDiv.firstElementChild);
 
-        // Показываем модальное окно
-        const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
-        videoModal.show();
+                // Показываем модальное окно
+                const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
+                videoModal.show();
 
-        // Удаляем модальное окно при закрытии
-        document.getElementById('videoModal').addEventListener('hidden.bs.modal', function () {
-            this.remove();
-        });
-    }
+                // Удаляем модальное окно при закрытии
+                document.getElementById('videoModal').addEventListener('hidden.bs.modal', function () {
+                    this.remove();
+                });
+            }
 
-    // Загрузка номеров с использованием обновленной функции
-    async function loadRooms() {
-        toggleLoading(true);
-        try {
-            const response = await fetch('/api/rooms');
-            const data = await response.json();
+            // Функция для отображения/скрытия индикатора загрузки
+            function toggleLoading(show) {
+                document.getElementById('loading-rooms').style.display = show ? 'flex' : 'none';
+            }
 
-            if (data.success) {
-                const roomsContainer = document.getElementById('roomsContainer');
-                roomsContainer.innerHTML = '';
+            // Функция для отображения ошибки
+            function showError(message) {
+                document.getElementById('modalMessage').textContent = message;
+                const messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+                messageModal.show();
+            }
 
-                const roomSelect = document.getElementById('roomSelect');
-                roomSelect.innerHTML = '<option value="" selected disabled>Выберите номер</option>';
+            // Загрузка номеров с сервера
+            async function loadRooms() {
+                toggleLoading(true);
+                try {
+                    const response = await fetch('/api/rooms');
+                    const data = await response.json();
 
-                data.rooms.forEach(room => {
-                    // Получаем детальную информацию о номере
-                    fetch(`/api/rooms/${room.id}`)
-                        .then(response => response.json())
-                        .then(detailData => {
-                            if (detailData.success) {
-                                const detailedRoom = detailData.room;
+                    if (data.success) {
+                        const roomsContainer = document.getElementById('roomsContainer');
+                        roomsContainer.innerHTML = '';
 
-                                // Добавление карточки номера через обновленную функцию
-                                const roomCard = createRoomCard(detailedRoom);
-                                roomsContainer.appendChild(roomCard);
+                        const roomSelect = document.getElementById('roomSelect');
+                        roomSelect.innerHTML = '<option value="" selected disabled>Выберите номер</option>';
 
-                                // Настраиваем обработчик клика на кнопке бронирования
-                                roomCard.querySelector('.book-room-btn').addEventListener('click', function() {
-                                    document.getElementById('roomSelect').value = detailedRoom.id;
+                        // Группируем номера по типам для более организованного отображения
+                        const roomTypes = {
+                            'standard': 'Стандартные номера',
+                            'luxury': 'Люкс номера',
+                            'vip': 'VIP номера',
+                            'apartment': 'Апартаменты',
+                            'cottage': 'Коттеджи',
+                            'president': 'Президентские апартаменты',
+                            'tapchan': 'Тапчаны'
+                        };
 
-                                    // Переключение на вкладку бронирования
-                                    const bookingTab = document.getElementById('booking-tab');
-                                    const bookingTabInstance = new bootstrap.Tab(bookingTab);
-                                    bookingTabInstance.show();
+                        // Сначала добавляем заголовки типов
+                        Object.keys(roomTypes).forEach(type => {
+                            // Проверяем есть ли номера этого типа
+                            const roomsOfType = data.rooms.filter(room => room.type === type);
+                            if (roomsOfType.length > 0) {
+                                const typeHeader = document.createElement('div');
+                                typeHeader.className = 'col-12 mt-3 mb-2';
+                                typeHeader.innerHTML = `<h4>${roomTypes[type]}</h4>`;
+                                roomsContainer.appendChild(typeHeader);
+
+                                // Затем добавляем номера этого типа
+                                roomsOfType.forEach(room => {
+                                    // Получаем детальную информацию о номере
+                                    fetch(`/api/rooms/${room.id}`)
+                                        .then(response => response.json())
+                                        .then(detailData => {
+                                            if (detailData.success) {
+                                                const detailedRoom = detailData.room;
+
+                                                // Добавляем карточку номера
+                                                const roomCard = createRoomCard(detailedRoom);
+                                                roomsContainer.appendChild(roomCard);
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error(`Error fetching details for room ${room.id}:`, error);
+                                        });
+
+                                    // Добавляем опцию в выпадающий список
+                                    const option = document.createElement('option');
+                                    option.value = room.id;
+                                    option.textContent = `${room.name} - ${new Intl.NumberFormat('ru-RU').format(room.price)}₽/ночь`;
+                                    roomSelect.appendChild(option);
                                 });
                             }
-                        })
-                        .catch(error => {
-                            console.error(`Error fetching details for room ${room.id}:`, error);
                         });
 
-                    // Добавление опции в селект
-                    const option = document.createElement('option');
-                    option.value = room.id;
-                    option.textContent = `${room.name} - ${room.price}₽/ночь`;
-                    roomSelect.appendChild(option);
-                });
-            } else {
-                showError('Не удалось загрузить список номеров');
+                        // Обрабатываем номера, которые не попали ни в одну категорию
+                        const uncategorizedRooms = data.rooms.filter(room => !roomTypes[room.type]);
+                        if (uncategorizedRooms.length > 0) {
+                            const typeHeader = document.createElement('div');
+                            typeHeader.className = 'col-12 mt-3 mb-2';
+                            typeHeader.innerHTML = `<h4>Другие номера</h4>`;
+                            roomsContainer.appendChild(typeHeader);
+
+                            uncategorizedRooms.forEach(room => {
+                                // Аналогичная обработка как выше
+                                fetch(`/api/rooms/${room.id}`)
+                                    .then(response => response.json())
+                                    .then(detailData => {
+                                        if (detailData.success) {
+                                            const roomCard = createRoomCard(detailData.room);
+                                            roomsContainer.appendChild(roomCard);
+                                        }
+                                    });
+
+                                const option = document.createElement('option');
+                                option.value = room.id;
+                                option.textContent = `${room.name} - ${new Intl.NumberFormat('ru-RU').format(room.price)}₽/ночь`;
+                                roomSelect.appendChild(option);
+                            });
+                        }
+                    } else {
+                        showError('Не удалось загрузить список номеров');
+                    }
+                } catch (error) {
+                    console.error('Error loading rooms:', error);
+                    showError('Произошла ошибка при загрузке данных');
+                } finally {
+                    toggleLoading(false);
+                }
             }
-        } catch (error) {
-            console.error('Error loading rooms:', error);
-            showError('Произошла ошибка при загрузке данных');
-        } finally {
-            toggleLoading(false);
-        }
-    }
+
+            // Функция для расчета стоимости бронирования
+            async function calculatePrice() {
+                const roomId = document.getElementById('roomSelect').value;
+                const checkIn = document.getElementById('checkInDate').value;
+                const checkOut = document.getElementById('checkOutDate').value;
+                const guests = document.getElementById('guestsNumber').value;
+
+                if (!roomId || !checkIn || !checkOut || !guests) {
+                    // Скрываем блок с ценой если не все поля заполнены
+                    document.getElementById('price-info').style.display = 'none';
+                    return;
+                }
+
+                try {
+                    const formData = new FormData();
+                    formData.append('room_id', roomId);
+                    formData.append('check_in', checkIn);
+                    formData.append('check_out', checkOut);
+                    formData.append('guests', guests);
+
+                    const response = await fetch('/api/calculate-price', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        document.getElementById('totalPrice').textContent = new Intl.NumberFormat('ru-RU').format(data.price);
+                        document.getElementById('nightsCount').textContent = data.nights;
+                        document.getElementById('price-info').style.display = 'block';
+                    } else {
+                        showError(data.detail || 'Не удалось рассчитать стоимость');
+                    }
+                } catch (error) {
+                    console.error('Error calculating price:', error);
+                    showError('Произошла ошибка при расчете стоимости');
+                }
+            }
+
+            // Функция для бронирования номера
+            async function bookRoom() {
+                const roomId = document.getElementById('roomSelect').value;
+                const checkIn = document.getElementById('checkInDate').value;
+                const checkOut = document.getElementById('checkOutDate').value;
+                const guests = document.getElementById('guestsNumber').value;
+                const phone = document.getElementById('phoneNumber').value;
+
+                if (!roomId || !checkIn || !checkOut || !guests) {
+                    showError('Пожалуйста, заполните все обязательные поля');
+                    return;
+                }
+
+                // Проверяем, что выбранные даты корректны
+                if (new Date(checkIn) >= new Date(checkOut)) {
+                    showError('Дата выезда должна быть позже даты заезда');
+                    return;
+                }
+
+                try {
+                    // Отключаем кнопку на время отправки
+                    const submitBtn = document.getElementById('submitBtn');
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Оформление...';
+
+                    // Получаем Telegram ID пользователя из WebApp
+                    const telegramId = tgApp ? tgApp.initDataUnsafe.user?.id : null;
+
+                    if (!telegramId) {
+                        showError('Не удалось получить информацию о пользователе Telegram');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Забронировать';
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('telegram_id', telegramId);
+                    formData.append('room_id', roomId);
+                    formData.append('check_in', checkIn);
+                    formData.append('check_out', checkOut);
+                    formData.append('guests', guests);
+                    if (phone) formData.append('phone', phone);
+
+                    const response = await fetch('/api/book', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Показываем сообщение об успешном бронировании
+                        document.getElementById('modalMessage').innerHTML = `
+                            <div class="alert alert-success mb-0">
+                                <h5 class="alert-heading">Бронирование успешно оформлено!</h5>
+                                <p>Номер бронирования: ${data.booking_id}</p>
+                                <p>Наш администратор свяжется с вами для подтверждения.</p>
+                            </div>
+                        `;
+
+                        // Сбрасываем форму
+                        document.getElementById('bookingForm').reset();
+                        document.getElementById('price-info').style.display = 'none';
+
+                        // Показываем модальное окно
+                        const messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+                        messageModal.show();
+
+                        // Передаем данные о бронировании в Telegram
+                        if (tgApp) {
+                            tgApp.sendData(JSON.stringify({
+                                action: 'booking_completed',
+                                booking_id: data.booking_id
+                            }));
+                        }
+                    } else {
+                        showError(data.detail || 'Не удалось оформить бронирование');
+                    }
+                } catch (error) {
+                    console.error('Error booking room:', error);
+                    showError('Произошла ошибка при оформлении бронирования');
+                } finally {
+                    // Восстанавливаем кнопку
+                    const submitBtn = document.getElementById('submitBtn');
+                    submit
+                    // Восстанавливаем кнопку
+                    const submitBtn = document.getElementById('submitBtn');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Забронировать';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
