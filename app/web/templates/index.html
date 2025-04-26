@@ -379,112 +379,106 @@
 
             // Загрузка номеров с сервера
 async function loadRooms() {
+    console.log("Начало загрузки номеров");
     toggleLoading(true);
-    try {
-        console.log("Загрузка номеров напрямую через /direct-rooms");
-        const response = await fetch('/direct-rooms');
-        console.log("Response status:", response.status);
-        const directData = await response.json();
-        console.log("Direct rooms response:", directData);
 
-        if (directData.status === "success" && directData.rooms) {
+    try {
+        // Более простая версия с полным URL
+        const directUrl = window.location.origin + '/direct-rooms';
+        console.log("Запрос к:", directUrl);
+
+        const response = await fetch(directUrl);
+        console.log("Статус ответа:", response.status);
+
+        // Проверяем, успешный ли запрос
+        if (!response.ok) {
+            console.error("Ошибка получения данных:", response.status, response.statusText);
+            showError(`Ошибка загрузки (${response.status}): ${response.statusText}`);
+            toggleLoading(false);
+            return;
+        }
+
+        const text = await response.text();
+        console.log("Первые 100 символов ответа:", text.substring(0, 100));
+
+        let directData;
+        try {
+            directData = JSON.parse(text);
+            console.log("Данные успешно распарсены");
+        } catch (e) {
+            console.error("Ошибка парсинга JSON:", e);
+            console.log("Полученный текст:", text);
+            showError("Ошибка при обработке данных");
+            toggleLoading(false);
+            return;
+        }
+
+        // Проверяем структуру данных
+        console.log("Структура данных:",
+            "status:", directData?.status,
+            "rooms.length:", directData?.rooms?.length
+        );
+
+        if (directData?.status === "success" && directData?.rooms?.length > 0) {
+            console.log("Найдено комнат:", directData.rooms.length);
+
+            // Простой вывод комнат без сложной структуры
             const roomsContainer = document.getElementById('roomsContainer');
             roomsContainer.innerHTML = '';
 
-            const roomSelect = document.getElementById('roomSelect');
-            roomSelect.innerHTML = '<option value="" selected disabled>Выберите номер</option>';
+            directData.rooms.forEach(room => {
+                console.log("Обработка комнаты:", room.id, room.name);
 
-            // Группируем номера по типам для более организованного отображения
-            const roomTypes = {
-                'standard': 'Стандартные номера',
-                'luxury': 'Люкс номера',
-                'vip': 'VIP номера',
-                'apartment': 'Апартаменты',
-                'cottage': 'Коттеджи',
-                'president': 'Президентские апартаменты',
-                'tapchan': 'Тапчаны'
-            };
+                // Создаем простую карточку
+                const roomCard = document.createElement('div');
+                roomCard.className = 'col-md-12 mb-4';
+                roomCard.innerHTML = `
+                    <div class="card">
+                        <img src="${room.image_url || 'https://via.placeholder.com/400x200?text=Нет+изображения'}"
+                             class="card-img-top" alt="${room.name}">
+                        <div class="card-body">
+                            <h5 class="card-title">${room.name}</h5>
+                            <p class="card-text">${room.description || 'Нет описания'}</p>
+                            <p class="card-text">Цена: ${new Intl.NumberFormat('ru-RU').format(room.price_per_night)}₽/ночь</p>
+                            <p class="card-text">Вместимость: ${room.capacity} чел.</p>
+                            <button class="btn btn-primary book-room-btn" data-room-id="${room.id}">
+                                Забронировать
+                            </button>
+                        </div>
+                    </div>
+                `;
 
-            // Сначала добавляем заголовки типов
-            Object.keys(roomTypes).forEach(type => {
-                // Проверяем есть ли номера этого типа
-                const roomsOfType = directData.rooms.filter(room => room.room_type === type);
-                if (roomsOfType.length > 0) {
-                    const typeHeader = document.createElement('div');
-                    typeHeader.className = 'col-12 mt-3 mb-2';
-                    typeHeader.innerHTML = `<h4>${roomTypes[type]}</h4>`;
-                    roomsContainer.appendChild(typeHeader);
+                roomsContainer.appendChild(roomCard);
 
-                    // Затем добавляем номера этого типа
-                    roomsOfType.forEach(room => {
-                        // Преобразуем данные в формат, ожидаемый функцией createRoomCard
-                        const roomData = {
-                            id: room.id,
-                            name: room.name,
-                            description: room.description,
-                            type: room.room_type,
-                            price: room.price_per_night,
-                            weekend_price: room.weekend_price,
-                            capacity: room.capacity,
-                            available: room.is_available,
-                            image_url: room.image_url,
-                            amenities: room.amenities ? (typeof room.amenities === 'string' ? JSON.parse(room.amenities) : room.amenities) : [],
-                            photos: room.photos ? (typeof room.photos === 'string' ? JSON.parse(room.photos) : room.photos) : [],
-                            video_url: room.video_url
-                        };
-
-                        // Добавляем карточку номера
-                        const roomCard = createRoomCard(roomData);
-                        roomsContainer.appendChild(roomCard);
-
-                        // Добавляем опцию в выпадающий список
-                        const option = document.createElement('option');
-                        option.value = room.id;
-                        option.textContent = `${room.name} - ${new Intl.NumberFormat('ru-RU').format(room.price_per_night)}₽/ночь`;
-                        roomSelect.appendChild(option);
-                    });
-                }
-            });
-
-            // Обрабатываем номера, которые не попали ни в одну категорию
-            const uncategorizedRooms = directData.rooms.filter(room => !roomTypes[room.room_type]);
-            if (uncategorizedRooms.length > 0) {
-                const typeHeader = document.createElement('div');
-                typeHeader.className = 'col-12 mt-3 mb-2';
-                typeHeader.innerHTML = `<h4>Другие номера</h4>`;
-                roomsContainer.appendChild(typeHeader);
-
-                uncategorizedRooms.forEach(room => {
-                    // Преобразуем данные
-                    const roomData = {
-                        id: room.id,
-                        name: room.name,
-                        description: room.description,
-                        type: room.room_type,
-                        price: room.price_per_night,
-                        weekend_price: room.weekend_price,
-                        capacity: room.capacity,
-                        available: room.is_available,
-                        image_url: room.image_url,
-                        amenities: room.amenities ? (typeof room.amenities === 'string' ? JSON.parse(room.amenities) : room.amenities) : [],
-                        photos: room.photos ? (typeof room.photos === 'string' ? JSON.parse(room.photos) : room.photos) : [],
-                        video_url: room.video_url
-                    };
-
-                    const roomCard = createRoomCard(roomData);
-                    roomsContainer.appendChild(roomCard);
-
+                // Добавляем в выпадающий список, если он существует
+                const roomSelect = document.getElementById('roomSelect');
+                if (roomSelect) {
                     const option = document.createElement('option');
                     option.value = room.id;
                     option.textContent = `${room.name} - ${new Intl.NumberFormat('ru-RU').format(room.price_per_night)}₽/ночь`;
                     roomSelect.appendChild(option);
+                }
+            });
+
+            // Настраиваем обработчики кнопок бронирования
+            document.querySelectorAll('.book-room-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const roomId = this.getAttribute('data-room-id');
+                    document.getElementById('roomSelect').value = roomId;
+
+                    // Переключение на вкладку бронирования
+                    const bookingTab = document.getElementById('booking-tab');
+                    const bookingTabInstance = new bootstrap.Tab(bookingTab);
+                    bookingTabInstance.show();
                 });
-            }
+            });
+
         } else {
+            console.error("Некорректные данные:", directData);
             showError('Не удалось загрузить список номеров');
         }
     } catch (error) {
-        console.error('Error loading rooms:', error);
+        console.error('Ошибка при загрузке номеров:', error);
         showError('Произошла ошибка при загрузке данных');
     } finally {
         toggleLoading(false);
