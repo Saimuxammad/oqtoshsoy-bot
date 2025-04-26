@@ -200,6 +200,22 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Основной JavaScript -->
     <script>
+        // Предварительно загруженные данные о номерах
+const preloadedRooms = {
+  "status": "success",
+  "rooms": [
+    {"id":9,"name":"Тапчан малый (7 местный)","description":"Традиционный тапчан под открытым небом для отдыха компанией до 7 человек.","room_type":"tapchan","price_per_night":300000.0,"weekend_price":300000.0,"capacity":7,"is_available":1,"image_url":"https://i.imgur.com/nf1aE8m.jpg","photos":[],"video_url":null,"amenities":["Зона для пикника","Мангал (по запросу)","Доступ к общей инфраструктуре"],"meal_included":0,"with_breakfast":0,"season_type":"all"},
+    {"id":10,"name":"Тапчан большой (15 местный)","description":"Большой тапчан для отдыха большой компанией до 15 человек.","room_type":"tapchan","price_per_night":500000.0,"weekend_price":500000.0,"capacity":15,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":[],"video_url":null,"amenities":["Зона для пикника","Мангал (по запросу)","Доступ к общей инфраструктуре"],"meal_included":0,"with_breakfast":0,"season_type":"all"},
+    {"id":1,"name":"Стандарт 2-х местный","description":"Уютный номер для двух человек с видом на горы. Включает все необходимое для комфортного отдыха.","room_type":"standard","price_per_night":700000.0,"weekend_price":900000.0,"capacity":2,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Душ"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+    {"id":2,"name":"Люкс 2-х местный","description":"Просторный номер люкс с отдельной гостиной для двух человек. Повышенный уровень комфорта.","room_type":"luxury","price_per_night":900000.0,"weekend_price":1200000.0,"capacity":2,"is_available":1,"image_url":"https://i.imgur.com/Ecz64bK.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Ванная","Мини-бар"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+    {"id":3,"name":"Стандарт 4-х местный","description":"Номер с двумя спальнями для семьи или компании до 4 человек.","room_type":"standard","price_per_night":1200000.0,"weekend_price":1500000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/nf1aE8m.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Душ","Детская кроватка (по запросу)"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+    {"id":4,"name":"VIP малый 4-х местный","description":"Улучшенный номер для компании до 4 человек с дополнительными удобствами.","room_type":"vip","price_per_night":1300000.0,"weekend_price":1700000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Мини-кухня"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+    {"id":5,"name":"VIP большой 4-х местный","description":"Премиум номер для компании до 4 человек. Просторные комнаты с повышенным комфортом.","room_type":"vip","price_per_night":1600000.0,"weekend_price":1900000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/Ecz64bK.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Джакузи","Мини-кухня","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+    {"id":6,"name":"Апартамент 4-х местный","description":"Апартаменты с отдельной гостиной и кухней для компании до 4 человек.","room_type":"apartment","price_per_night":1800000.0,"weekend_price":2200000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/nf1aE8m.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Полноценная кухня","Гостиная"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+    {"id":7,"name":"Котедж 6-ти местный","description":"Отдельный коттедж для большой семьи или компании до 6 человек с собственной территорией.","room_type":"cottage","price_per_night":3000000.0,"weekend_price":3500000.0,"capacity":6,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Кухня","Барбекю зона","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+    {"id":8,"name":"Президентский апартамент 8-ми местный","description":"Эксклюзивные апартаменты высшего уровня для компании до 8 человек с максимальным комфортом.","room_type":"president","price_per_night":3800000.0,"weekend_price":4500000.0,"capacity":8,"is_available":1,"image_url":"https://i.imgur.com/Ecz64bK.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Джакузи","Сауна","Кухня","Бильярд","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"}
+  ]
+};
         document.addEventListener('DOMContentLoaded', function() {
             const tgApp = window.Telegram?.WebApp;
 
@@ -377,86 +393,88 @@
                 messageModal.show();
             }
 
-            // Загрузка номеров с сервера
+           // Загрузка номеров с сервера (используем предзагруженные данные)
 async function loadRooms() {
-    console.log("Начало загрузки номеров");
+    console.log("Начало загрузки номеров из предзагруженных данных");
     toggleLoading(true);
 
     try {
-        // Более простая версия с полным URL
-        const directUrl = window.location.origin + '/direct-rooms';
-        console.log("Запрос к:", directUrl);
+        // Используем предзагруженные данные вместо сетевого запроса
+        const directData = preloadedRooms;
+        console.log("Данные о номерах:", directData);
 
-        const response = await fetch(directUrl);
-        console.log("Статус ответа:", response.status);
-
-        // Проверяем, успешный ли запрос
-        if (!response.ok) {
-            console.error("Ошибка получения данных:", response.status, response.statusText);
-            showError(`Ошибка загрузки (${response.status}): ${response.statusText}`);
-            toggleLoading(false);
-            return;
-        }
-
-        const text = await response.text();
-        console.log("Первые 100 символов ответа:", text.substring(0, 100));
-
-        let directData;
-        try {
-            directData = JSON.parse(text);
-            console.log("Данные успешно распарсены");
-        } catch (e) {
-            console.error("Ошибка парсинга JSON:", e);
-            console.log("Полученный текст:", text);
-            showError("Ошибка при обработке данных");
-            toggleLoading(false);
-            return;
-        }
-
-        // Проверяем структуру данных
-        console.log("Структура данных:",
-            "status:", directData?.status,
-            "rooms.length:", directData?.rooms?.length
-        );
-
-        if (directData?.status === "success" && directData?.rooms?.length > 0) {
-            console.log("Найдено комнат:", directData.rooms.length);
-
-            // Простой вывод комнат без сложной структуры
+        if (directData.status === "success" && directData.rooms && directData.rooms.length > 0) {
             const roomsContainer = document.getElementById('roomsContainer');
             roomsContainer.innerHTML = '';
 
-            directData.rooms.forEach(room => {
-                console.log("Обработка комнаты:", room.id, room.name);
+            const roomSelect = document.getElementById('roomSelect');
+            if (roomSelect) {
+                roomSelect.innerHTML = '<option value="" selected disabled>Выберите номер</option>';
+            }
 
-                // Создаем простую карточку
-                const roomCard = document.createElement('div');
-                roomCard.className = 'col-md-12 mb-4';
-                roomCard.innerHTML = `
-                    <div class="card">
-                        <img src="${room.image_url || 'https://via.placeholder.com/400x200?text=Нет+изображения'}"
-                             class="card-img-top" alt="${room.name}">
-                        <div class="card-body">
-                            <h5 class="card-title">${room.name}</h5>
-                            <p class="card-text">${room.description || 'Нет описания'}</p>
-                            <p class="card-text">Цена: ${new Intl.NumberFormat('ru-RU').format(room.price_per_night)}₽/ночь</p>
-                            <p class="card-text">Вместимость: ${room.capacity} чел.</p>
-                            <button class="btn btn-primary book-room-btn" data-room-id="${room.id}">
-                                Забронировать
-                            </button>
-                        </div>
-                    </div>
-                `;
+            // Группируем номера по типам
+            const roomTypes = {
+                'standard': 'Стандартные номера',
+                'luxury': 'Люкс номера',
+                'vip': 'VIP номера',
+                'apartment': 'Апартаменты',
+                'cottage': 'Коттеджи',
+                'president': 'Президентские апартаменты',
+                'tapchan': 'Тапчаны'
+            };
 
-                roomsContainer.appendChild(roomCard);
+            // Сначала добавляем заголовки типов
+            Object.keys(roomTypes).forEach(type => {
+                // Проверяем есть ли номера этого типа
+                const roomsOfType = directData.rooms.filter(room => room.room_type === type);
+                if (roomsOfType.length > 0) {
+                    const typeHeader = document.createElement('div');
+                    typeHeader.className = 'col-12 mt-3 mb-2';
+                    typeHeader.innerHTML = `<h4>${roomTypes[type]}</h4>`;
+                    roomsContainer.appendChild(typeHeader);
 
-                // Добавляем в выпадающий список, если он существует
-                const roomSelect = document.getElementById('roomSelect');
-                if (roomSelect) {
-                    const option = document.createElement('option');
-                    option.value = room.id;
-                    option.textContent = `${room.name} - ${new Intl.NumberFormat('ru-RU').format(room.price_per_night)}₽/ночь`;
-                    roomSelect.appendChild(option);
+                    // Добавляем карточки номеров
+                    roomsOfType.forEach(room => {
+                        // Создаем простую карточку
+                        const roomCard = document.createElement('div');
+                        roomCard.className = 'col-md-12 mb-4';
+                        roomCard.innerHTML = `
+                            <div class="card">
+                                <img src="${room.image_url || 'https://via.placeholder.com/400x200?text=Нет+изображения'}"
+                                     class="card-img-top" alt="${room.name}" style="height:200px; object-fit:cover;">
+                                <div class="card-body">
+                                    <h5 class="card-title">${room.name}</h5>
+                                    <p class="card-text">${room.description || 'Нет описания'}</p>
+                                    <div class="d-flex flex-wrap mb-2">
+                                        ${room.amenities.map(amenity =>
+                                            `<span class="badge bg-light text-dark me-1 mb-1">${amenity}</span>`
+                                        ).join('')}
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-primary fw-bold">
+                                            ${new Intl.NumberFormat('ru-RU').format(room.price_per_night)}₽/ночь
+                                        </span>
+                                        <button class="btn btn-sm btn-primary book-room-btn" data-room-id="${room.id}">
+                                            Забронировать
+                                        </button>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">Вместимость: ${room.capacity} чел.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        roomsContainer.appendChild(roomCard);
+
+                        // Добавляем в выпадающий список, если он существует
+                        if (roomSelect) {
+                            const option = document.createElement('option');
+                            option.value = room.id;
+                            option.textContent = `${room.name} - ${new Intl.NumberFormat('ru-RU').format(room.price_per_night)}₽/ночь`;
+                            roomSelect.appendChild(option);
+                        }
+                    });
                 }
             });
 
@@ -464,12 +482,17 @@ async function loadRooms() {
             document.querySelectorAll('.book-room-btn').forEach(button => {
                 button.addEventListener('click', function() {
                     const roomId = this.getAttribute('data-room-id');
-                    document.getElementById('roomSelect').value = roomId;
+                    const roomSelect = document.getElementById('roomSelect');
+                    if (roomSelect) {
+                        roomSelect.value = roomId;
+                    }
 
                     // Переключение на вкладку бронирования
                     const bookingTab = document.getElementById('booking-tab');
-                    const bookingTabInstance = new bootstrap.Tab(bookingTab);
-                    bookingTabInstance.show();
+                    if (bookingTab) {
+                        const bookingTabInstance = new bootstrap.Tab(bookingTab);
+                        bookingTabInstance.show();
+                    }
                 });
             });
 
