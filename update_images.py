@@ -7,13 +7,18 @@ db_path = "oqtoshsoy.db"  # Укажите правильный путь, есл
 
 # Список фотографий для стандартного номера (ID 1)
 standard_room_photos = [
-    "https://imgur.com/njJXDo1",
-    "https://imgur.com/LRgKg5y",
-    "https://imgur.com/Boeke4g",
-    "https://imgur.com/SAS86LR",
-    "https://imgur.com/zSmB3i4",
-    "https://imgur.com/8I61dlC"
+    "[img]https://i.imgur.com/Boeke4g.jpeg[/img]",
+    "[img]https://i.imgur.com/njJXDo1.jpeg[/img]",
+    "[img]https://i.imgur.com/SAS86LR.jpeg[/img]",
+    "[img]https://i.imgur.com/LRgKg5y.jpeg[/img]",
+    "[img]https://i.imgur.com/SAS86LR.jpeg[/img]",
+    "[img]https://i.imgur.com/zSmB3i4.jpeg[/img]",
+    "[img]https://i.imgur.com/8I61dlC.jpeg[/img]"
 ]
+
+# Важно: Преобразуйте ссылки в прямые ссылки на изображения, добавив '.jpg' и заменив imgur.com на i.imgur.com
+standard_room_photos_direct = [url.replace("https://imgur.com/", "https://i.imgur.com/") + ".jpg" for url in
+                               standard_room_photos]
 
 
 def update_room_images():
@@ -31,7 +36,7 @@ def update_room_images():
         # Обновляем основное изображение и массив photos для номера "Стандарт 2-х местный"
         cursor.execute(
             "UPDATE rooms SET image_url = ?, photos = ? WHERE id = ?",
-            (standard_room_photos[0], json.dumps(standard_room_photos), 1)
+            (standard_room_photos_direct[0], json.dumps(standard_room_photos_direct), 1)
         )
 
         print(f"Обновлено изображение и галерея для номера ID 1")
@@ -48,5 +53,6 @@ def update_room_images():
         return False
 
 
+# Важно: запустить функцию обновления при выполнении скрипта
 if __name__ == "__main__":
     update_room_images()
