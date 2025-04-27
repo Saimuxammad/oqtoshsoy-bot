@@ -35,6 +35,30 @@
             align-items: center;
             height: 100px;
         }
+        /* Стили для карусели */
+        .carousel-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .carousel-indicators {
+            margin-bottom: 0;
+        }
+        .carousel-indicators button {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.5);
+        }
+        .carousel-control-prev, .carousel-control-next {
+            width: 10%;
+        }
+        /* Для телефонов уменьшим отступы в карточках комнат */
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -153,16 +177,16 @@
         const roomsData = {
           "status": "success",
           "rooms": [
-            {"id":9,"name":"Тапчан малый (7 местный)","description":"Традиционный тапчан под открытым небом для отдыха компанией до 7 человек.","room_type":"tapchan","price_per_night":300000.0,"weekend_price":300000.0,"capacity":7,"is_available":1,"image_url":"https://i.imgur.com/nf1aE8m.jpg","photos":[],"video_url":null,"amenities":["Зона для пикника","Мангал (по запросу)","Доступ к общей инфраструктуре"],"meal_included":0,"with_breakfast":0,"season_type":"all"},
-            {"id":10,"name":"Тапчан большой (15 местный)","description":"Большой тапчан для отдыха большой компанией до 15 человек.","room_type":"tapchan","price_per_night":500000.0,"weekend_price":500000.0,"capacity":15,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":[],"video_url":null,"amenities":["Зона для пикника","Мангал (по запросу)","Доступ к общей инфраструктуре"],"meal_included":0,"with_breakfast":0,"season_type":"all"},
-            {"id":1,"name":"Стандарт 2-х местный","description":"Уютный номер для двух человек с видом на горы. Включает все необходимое для комфортного отдыха.","room_type":"standard","price_per_night":700000.0,"weekend_price":900000.0,"capacity":2,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Душ"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":2,"name":"Люкс 2-х местный","description":"Просторный номер люкс с отдельной гостиной для двух человек. Повышенный уровень комфорта.","room_type":"luxury","price_per_night":900000.0,"weekend_price":1200000.0,"capacity":2,"is_available":1,"image_url":"https://i.imgur.com/Ecz64bK.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Ванная","Мини-бар"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":3,"name":"Стандарт 4-х местный","description":"Номер с двумя спальнями для семьи или компании до 4 человек.","room_type":"standard","price_per_night":1200000.0,"weekend_price":1500000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/nf1aE8m.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Душ","Детская кроватка (по запросу)"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":4,"name":"VIP малый 4-х местный","description":"Улучшенный номер для компании до 4 человек с дополнительными удобствами.","room_type":"vip","price_per_night":1300000.0,"weekend_price":1700000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Мини-кухня"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":5,"name":"VIP большой 4-х местный","description":"Премиум номер для компании до 4 человек. Просторные комнаты с повышенным комфортом.","room_type":"vip","price_per_night":1600000.0,"weekend_price":1900000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/Ecz64bK.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Джакузи","Мини-кухня","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":6,"name":"Апартамент 4-х местный","description":"Апартаменты с отдельной гостиной и кухней для компании до 4 человек.","room_type":"apartment","price_per_night":1800000.0,"weekend_price":2200000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/nf1aE8m.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Полноценная кухня","Гостиная"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":7,"name":"Котедж 6-ти местный","description":"Отдельный коттедж для большой семьи или компании до 6 человек с собственной территорией.","room_type":"cottage","price_per_night":3000000.0,"weekend_price":3500000.0,"capacity":6,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Кухня","Барбекю зона","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":8,"name":"Президентский апартамент 8-ми местный","description":"Эксклюзивные апартаменты высшего уровня для компании до 8 человек с максимальным комфортом.","room_type":"president","price_per_night":3800000.0,"weekend_price":4500000.0,"capacity":8,"is_available":1,"image_url":"https://i.imgur.com/Ecz64bK.jpg","photos":[],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Джакузи","Сауна","Кухня","Бильярд","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"}
+            {"id":9,"name":"Тапчан малый (7 местный)","description":"Традиционный тапчан под открытым небом для отдыха компанией до 7 человек.","room_type":"tapchan","price_per_night":300000.0,"weekend_price":300000.0,"capacity":7,"is_available":1,"image_url":"https://i.imgur.com/nf1aE8m.jpg","photos":["https://i.imgur.com/ZXBtVw7.jpg","https://i.imgur.com/Ecz64bK.jpg"],"video_url":null,"amenities":["Зона для пикника","Мангал (по запросу)","Доступ к общей инфраструктуре"],"meal_included":0,"with_breakfast":0,"season_type":"all"},
+            {"id":10,"name":"Тапчан большой (15 местный)","description":"Большой тапчан для отдыха большой компанией до 15 человек.","room_type":"tapchan","price_per_night":500000.0,"weekend_price":500000.0,"capacity":15,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":["https://i.imgur.com/nf1aE8m.jpg","https://i.imgur.com/Ecz64bK.jpg"],"video_url":null,"amenities":["Зона для пикника","Мангал (по запросу)","Доступ к общей инфраструктуре"],"meal_included":0,"with_breakfast":0,"season_type":"all"},
+            {"id":1,"name":"Стандарт 2-х местный","description":"Уютный номер для двух человек с видом на горы. Включает все необходимое для комфортного отдыха.","room_type":"standard","price_per_night":700000.0,"weekend_price":900000.0,"capacity":2,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":["https://i.imgur.com/nf1aE8m.jpg","https://i.imgur.com/Ecz64bK.jpg","https://i.imgur.com/ZXBtVw7.jpg"],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Душ"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+            {"id":2,"name":"Люкс 2-х местный","description":"Просторный номер люкс с отдельной гостиной для двух человек. Повышенный уровень комфорта.","room_type":"luxury","price_per_night":900000.0,"weekend_price":1200000.0,"capacity":2,"is_available":1,"image_url":"https://i.imgur.com/Ecz64bK.jpg","photos":["https://i.imgur.com/ZXBtVw7.jpg","https://i.imgur.com/nf1aE8m.jpg"],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Ванная","Мини-бар"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+            {"id":3,"name":"Стандарт 4-х местный","description":"Номер с двумя спальнями для семьи или компании до 4 человек.","room_type":"standard","price_per_night":1200000.0,"weekend_price":1500000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/nf1aE8m.jpg","photos":["https://i.imgur.com/ZXBtVw7.jpg","https://i.imgur.com/Ecz64bK.jpg"],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Душ","Детская кроватка (по запросу)"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+            {"id":4,"name":"VIP малый 4-х местный","description":"Улучшенный номер для компании до 4 человек с дополнительными удобствами.","room_type":"vip","price_per_night":1300000.0,"weekend_price":1700000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":["https://i.imgur.com/nf1aE8m.jpg","https://i.imgur.com/Ecz64bK.jpg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Мини-кухня"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+            {"id":5,"name":"VIP большой 4-х местный","description":"Премиум номер для компании до 4 человек. Просторные комнаты с повышенным комфортом.","room_type":"vip","price_per_night":1600000.0,"weekend_price":1900000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/Ecz64bK.jpg","photos":["https://i.imgur.com/ZXBtVw7.jpg","https://i.imgur.com/nf1aE8m.jpg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Джакузи","Мини-кухня","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+            {"id":6,"name":"Апартамент 4-х местный","description":"Апартаменты с отдельной гостиной и кухней для компании до 4 человек.","room_type":"apartment","price_per_night":1800000.0,"weekend_price":2200000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/nf1aE8m.jpg","photos":["https://i.imgur.com/ZXBtVw7.jpg","https://i.imgur.com/Ecz64bK.jpg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Полноценная кухня","Гостиная"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+            {"id":7,"name":"Котедж 6-ти местный","description":"Отдельный коттедж для большой семьи или компании до 6 человек с собственной территорией.","room_type":"cottage","price_per_night":3000000.0,"weekend_price":3500000.0,"capacity":6,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":["https://i.imgur.com/nf1aE8m.jpg","https://i.imgur.com/Ecz64bK.jpg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Кухня","Барбекю зона","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+            {"id":8,"name":"Президентский апартамент 8-ми местный","description":"Эксклюзивные апартаменты высшего уровня для компании до 8 человек с максимальным комфортом.","room_type":"president","price_per_night":3800000.0,"weekend_price":4500000.0,"capacity":8,"is_available":1,"image_url":"https://i.imgur.com/Ecz64bK.jpg","photos":["https://i.imgur.com/ZXBtVw7.jpg","https://i.imgur.com/nf1aE8m.jpg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Джакузи","Сауна","Кухня","Бильярд","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"}
           ]
         };
 
@@ -210,7 +234,7 @@
             });
         });
 
-        // Функция загрузки номеров
+        // Функция загрузки номеров с поддержкой галереи изображений
         function loadRooms() {
             console.log("Загрузка номеров из встроенных данных");
 
@@ -253,9 +277,9 @@
                             // Формат цены
                             let priceText;
                             if (room.weekend_price && room.weekend_price !== room.price_per_night) {
-                                priceText = `${formatPrice(room.price_per_night)}₽ (ПН-ЧТ) / ${formatPrice(room.weekend_price)}₽ (ПТ-ВС)`;
+                                priceText = `${formatPrice(room.price_per_night)} сум (ПН-ЧТ) / ${formatPrice(room.weekend_price)} сум (ПТ-ВС)`;
                             } else {
-                                priceText = `${formatPrice(room.price_per_night)}₽/ночь`;
+                                priceText = `${formatPrice(room.price_per_night)} сум/ночь`;
                             }
 
                             // Формирование удобств
@@ -263,10 +287,62 @@
                                 `<span class="badge bg-light text-dark me-1 mb-1">${a}</span>`
                             ).join('');
 
+                            // Определяем, нужно ли добавлять галерею
+                            let galleryHtml = '';
+                            if (room.photos && room.photos.length > 0) {
+                                // Создаем ID для карусели
+                                const carouselId = `carousel-${room.id}`;
+
+                                // Создаем индикаторы для карусели
+                                let indicatorsHtml = '';
+                                let slidesHtml = '';
+
+                                // Первый слайд - основное изображение
+                                indicatorsHtml += `<button type="button" data-bs-target="#${carouselId}" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>`;
+                                slidesHtml += `
+                                    <div class="carousel-item active">
+                                        <img src="${room.image_url}" class="d-block w-100 room-img" alt="${room.name}">
+                                    </div>
+                                `;
+
+                                // Добавляем дополнительные фотографии
+                                room.photos.forEach((photo, index) => {
+                                    indicatorsHtml += `<button type="button" data-bs-target="#${carouselId}" data-bs-slide-to="${index + 1}" aria-label="Slide ${index + 2}"></button>`;
+                                    slidesHtml += `
+                                        <div class="carousel-item">
+                                            <img src="${photo}" class="d-block w-100 room-img" alt="${room.name} - фото ${index + 2}">
+                                        </div>
+                                    `;
+                                });
+
+                                // Формируем полную карусель
+                                galleryHtml = `
+                                    <div id="${carouselId}" class="carousel slide" data-bs-ride="carousel">
+                                        <div class="carousel-indicators">
+                                            ${indicatorsHtml}
+                                        </div>
+                                        <div class="carousel-inner">
+                                            ${slidesHtml}
+                                        </div>
+                                        <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Предыдущий</span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
+                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Следующий</span>
+                                        </button>
+                                    </div>
+                                `;
+                            } else {
+                                // Если дополнительных фото нет, показываем только основное изображение
+                                galleryHtml = `<img src="${room.image_url}" class="room-img" alt="${room.name}">`;
+                            }
+
                             roomCard.innerHTML = `
                                 <div class="row g-0">
                                     <div class="col-md-4">
-                                        <img src="${room.image_url}" class="room-img" alt="${room.name}">
+                                        ${galleryHtml}
                                     </div>
                                     <div class="col-md-8">
                                         <div class="card-body">
@@ -293,7 +369,7 @@
                             // Добавляем в выпадающий список
                             const option = document.createElement('option');
                             option.value = room.id;
-                            option.textContent = `${room.name} - ${formatPrice(room.price_per_night)}₽/ночь`;
+                            option.textContent = `${room.name} - ${formatPrice(room.price_per_night)} сум/ночь`;
                             roomSelect.appendChild(option);
                         });
                     }
@@ -346,8 +422,30 @@
 
                 if (nights <= 0) throw new Error("Дата выезда должна быть позже даты заезда");
 
-                // Рассчитываем стоимость
-                const totalPrice = room.price_per_night * nights;
+                // Проверка на вместимость
+                if (guests > room.capacity) {
+                    showError(`Этот номер вмещает максимум ${room.capacity} человек`);
+                    return;
+                }
+
+                // Рассчитываем стоимость (учитываем будние и выходные дни, если цены отличаются)
+                let totalPrice = 0;
+                let currentDate = new Date(checkIn);
+
+                while (currentDate < checkOutDate) {
+                    // Проверяем, является ли текущий день выходным (пятница, суббота или воскресенье)
+                    const dayOfWeek = currentDate.getDay(); // 0 - воскресенье, ... 6 - суббота
+                    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
+
+                    if (isWeekend && room.weekend_price && room.weekend_price !== room.price_per_night) {
+                        totalPrice += room.weekend_price;
+                    } else {
+                        totalPrice += room.price_per_night;
+                    }
+
+                    // Переходим к следующему дню
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
 
                 // Показываем информацию
                 document.getElementById('totalPrice').textContent = formatPrice(totalPrice);
