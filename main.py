@@ -296,6 +296,33 @@ async def webapp_endpoint():
         </html>
         """, status_code=500)
 
+    @app.get("/check-room/{room_id}")
+    async def check_room(room_id: int):
+        """Временный эндпоинт для проверки данных о номере"""
+        import sqlite3
+
+        try:
+            # Подключение к базе данных
+            conn = sqlite3.connect("oqtoshsoy.db")
+            cursor = conn.cursor()
+
+            # Запрос информации о номере
+            cursor.execute("SELECT id, name, description, image_url, photos FROM rooms WHERE id = ?", (room_id,))
+            row = cursor.fetchone()
+
+            if not row:
+                return {"error": "Room not found"}
+
+            return {
+                "id": row[0],
+                "name": row[1],
+                "description": row[2],
+                "image_url": row[3],
+                "photos": row[4]
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
     @app.get("/check-files")
     async def check_files():
         """Проверка наличия файлов в приложении"""
