@@ -1362,3 +1362,125 @@ async def webapp_test():
     </html>
     """
     return HTMLResponse(content=html_content)
+
+
+# Добавляем в main.py планировщик задач
+async def start_notification_scheduler(bot: Bot):
+    """Запуск планировщика уведомлений"""
+    notification_service = NotificationService(bot)
+
+    while True:
+        try:
+            current_time = datetime.now()
+
+            # Ежедневные задачи в 9:00
+            if current_time.hour == 9 and current_time.minute == 0:
+                async with SessionLocal() as session:
+                    await notification_service.send_reminder_24h(session)
+                    await notification_service.send_checkout_reminder(session)
+                    await notification_service.daily_statistics(session)
+
+            # Запрос отзывов в 18:00
+            if current_time.hour == 18 and current_time.minute == 0:
+                async with SessionLocal() as session:
+                    await notification_service.send_review_request(session)
+
+            # Пятничные акции
+            if current_time.weekday() == 4 and current_time.hour == 12 and current_time.minute == 0:
+                async with SessionLocal() as session:
+                    await notification_service.send_special_offers(session, "weekend")
+
+            # Ждем минуту перед следующей проверкой
+            await asyncio.sleep(60)
+
+        except Exception as e:
+            logger.error(f"Error in notification scheduler: {e}")
+            await asyncio.sleep(60)
+            self.bot = bot
+
+    async def send_reminder_24h(self, session: AsyncSession):
+        """Отправка напоминаний за 24 часа до заезда"""
+        tomorrow = datetime.now() + timedelta(days=1)
+        tomorrow_start = tomorrow.replace(hour=0, minute=0, second=0)
+        tomorrow_end = tomorrow.replace(hour=23, minute=59, second=59)
+
+        # Находим бронирования на завтра
+        result = await session.execute(
+            select(Booking).where(
+                and_(
+                    Booking.check_in >= tomorrow_start,
+                    Booking.check_in <= tomorrow_end,
+                    Booking.status == "confirmed"
+                )
+            )
+        )
+        bookings = result.scalars().all()
+
+        for booking in bookings:
+            try:
+                # Отправляем клиенту
+                await self.bot.send_message(
+                    booking.user.telegram_id,
+                    f"🔔 Напоминание о бронировании!\n\n"
+                    f"Завтра ваш заезд в курорт Oqtoshsoy:\n"
+                    f"🛏 Номер: {booking.room.name}\n"
+                    f"📅 Заезд: {booking.check_in.strftime('%d.%m.%Y')} в 14:00\n"
+                    f"📅 Выезд: {booking.check_out.strftime('%d.%m.%Y')} до 12:00\n\n"
+                    f"📍 Адрес: Ташкентская область, Бостанлыкский район\n"
+                    f"📞 Контакт: +998 90 096 50 55\n\n"
+                    f"Ждем вас с нетерпением! 🌟"
+                )
+
+                # Уведомляем админа
+                await self.bot.send_message(
+                    ADMIN_TELEGRAM_ID,
+                    f"📋 Завтра заезд:\n"
+                    f"Бронирование #{booking.id}\n"
+                    f"Гость: @{booking.user.username or booking.user.telegram_id}\n"
+                    f"Номер: {booking.room.name}"
+                )
+
+            except Exception as e:
+                logger.error(f"Error sending 24h reminder for booking {booking.id}: {e}")
+
+    async def send_checkout_reminder(self, session: AsyncSession):
+        """Напоминание о выезде в день выезда"""
+        today = datetime.now().date()
+
+        result = await session.execute(
+            select(Booking).where(
+                and_(
+                    Booking.check_out == today,
+                    Booking.status == "confirmed"
+                )
+            )
+        )
+        bookings = result.scalars().all()
+
+        for booking in bookings:
+            try:
+                await self.bot.send_message(
+                    booking.user.telegram_id,
+                    f"☀️ Доброе утро!\n\n"
+                    f"Напоминаем, что сегодня день вашего выезда.\n"
+                    f"Выезд до 12:00\n\n"
+                    f"Надеемся, вам понравилось у нас! 💚\n"
+                    f"Будем рады видеть вас снова!\n\n"
+                    f"Оставьте отзыв: /review_{booking.id}"
+                )
+            except Exception as e:
+                logger.error(f"Error sending checkout reminder for booking {booking.id}: {e}")
+
+    async def send_review_request(self, session: AsyncSession):
+        """Запрос отзыва через день после выезда"""
+        yesterday = datetime.now().date() - timedelta(days=1)
+
+        result = await session.execute(
+            select(Booking).where(
+                and_(
+                    Booking.check_out == yesterday,
+                    Booking.status == "confirmed"
+                )
+            )
+        )
+        bookings = result.scalars().all()

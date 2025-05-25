@@ -3,6 +3,10 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
+from aiogram.types import InputMediaPhoto  # Для отправки альбома фото
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+import calendar
+from datetime import datetime, timedelta
 
 from app.bot.singleton_router import get_router
 from app.bot.keyboards import main_keyboard, rooms_keyboard, room_detail_keyboard, support_keyboard
@@ -265,3 +269,350 @@ async def unknown_message(message: Message):
         "Я не понимаю эту команду. Пожалуйста, воспользуйтесь меню.",
         reply_markup=main_keyboard()
     )
+
+
+# Добавьте ЭТО в КОНЕЦ файла app/bot/handlers.py
+
+# =================== ВИДЕО ФУНКЦИИ ===================
+
+# Handler для видео-туров
+@router.callback_query(lambda c: c.data and c.data.startswith("video_tour_"))
+async def show_video_tour(callback: CallbackQuery, session: AsyncSession):
+    room_id = int(callback.data.split("_")[2])
+    room = await get_room(session, room_id)
+
+    if not room or not room.video_url:
+        await callback.answer("Видео-тур пока недоступен")
+        return
+
+    # Отправляем видео с описанием
+    await callback.message.answer_video(
+        video=room.video_url,
+        caption=(
+            f"🎥 Видео-тур: {room.name}\n\n"
+            f"Посмотрите наш номер в деталях. "
+            f"Вы можете оценить пространство, вид из окон и все удобства."
+        ),
+        reply_markup=room_detail_keyboard(room_id, has_video=True)  # Обновите функцию keyboard
+    )
+    await callback.answer()
+
+
+# Handler для 360° фото
+@router.callback_query(lambda c: c.data and c.data.startswith("360_view_"))
+async def show_360_view(callback: CallbackQuery):
+    tour_type = callback.data.split("_")[2]
+
+    tours = {
+        "territory": {
+            "url": "https://example.com/360/territory",  # Замените на реальные ссылки
+            "title": "360° тур по территории курорта",
+            "description": "Прогуляйтесь по нашей территории виртуально"
+        },
+        "restaurant": {
+            "url": "https://example.com/360/restaurant",
+            "title": "360° тур по ресторану",
+            "description": "Посмотрите наш ресторан и банкетный зал"
+        },
+        "pool": {
+            "url": "https://example.com/360/pool",
+            "title": "360° тур по бассейну",
+            "description": "Оцените наш бассейн и зону отдыха"
+        }
+    }
+
+    tour = tours.get(tour_type)
+    if tour:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌐 Открыть 360° тур", url=tour["url"])],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="virtual_tours")]
+        ])
+
+        await callback.message.answer(
+            f"🎮 {tour['title']}\n\n{tour['description']}",
+            reply_markup=keyboard
+        )
+
+    await callback.answer()
+
+
+# Добавим в главное меню новую кнопку
+@router.message(F.text == "🎥 Виртуальные туры")
+async def virtual_tours_menu(message: Message):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🏞 360° тур по территории", callback_data="360_view_territory")],
+        [InlineKeyboardButton(text="🍽 360° тур по ресторану", callback_data="360_view_restaurant")],
+        [InlineKeyboardButton(text="🏊 360° тур по бассейну", callback_data="360_view_pool")],
+        [InlineKeyboardButton(text="🎬 Общее видео о курорте", callback_data="general_video")],
+        [InlineKeyboardButton(text="🔙 Главное меню", callback_data="back_to_main")]
+    ])
+
+    await message.answer(
+        "🎥 Виртуальные туры по курорту Oqtoshsoy\n\n"
+        "Выберите, что хотите посмотреть:",
+        reply_markup=keyboard,
+        parse_mode=None
+    )
+
+
+# Handler для общего видео о курорте
+@router.callback_query(F.data == "general_video")
+async def show_general_video(callback: CallbackQuery):
+    # Замените на реальную ссылку на видео
+    video_url = "https://youtube.com/watch?v=YOUR_VIDEO_ID"
+
+    await callback.message.answer(
+        "🎬 Видео-презентация курорта Oqtoshsoy\n\n"
+        "Посмотрите наш курорт с высоты птичьего полета, "
+        "узнайте о всех возможностях для отдыха и развлечений.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="▶️ Смотреть на YouTube", url=video_url)],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="virtual_tours")]
+        ])
+    )
+    await callback.answer()
+
+
+# Handler для показа всех фото номера
+@router.callback_query(lambda c: c.data and c.data.startswith("all_photos_"))
+async def show_all_photos(callback: CallbackQuery, session: AsyncSession):
+    room_id = int(callback.data.split("_")[2])
+    room = await get_room(session, room_id)
+
+    if not room:
+        await callback.answer("Номер не найден")
+        return
+
+    # Парсим JSON с фотографиями
+    photos = []
+    if room.photos:
+        try:
+            import json
+            photos = json.loads(room.photos)
+        except:
+            photos = []
+
+    if photos:
+        # Отправляем альбом фотографий
+        media_group = []
+        for i, photo_url in enumerate(photos[:10]):  # Максимум 10 фото в альбоме
+            media_group.append(
+                InputMediaPhoto(
+                    media=photo_url,
+                    caption=f"{room.name} - фото {i + 1}" if i == 0 else None
+                )
+            )
+
+        await callback.message.answer_media_group(media_group)
+
+        # Если фото больше 10, сообщаем об этом
+        if len(photos) > 10:
+            await callback.message.answer(
+                f"Показаны первые 10 фото из {len(photos)}.\n"
+                f"Все фотографии доступны в нашем веб-приложении.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="📸 Смотреть все фото",
+                        web_app=WebAppInfo(url=f"{WEBAPP_URL}?room_id={room_id}&tab=photos")
+                    )],
+                    [InlineKeyboardButton(text="🔙 Назад", callback_data=f"room_{room_id}")]
+                ])
+            )
+    else:
+        await callback.message.answer(
+            "Дополнительные фотографии пока не загружены.",
+            reply_markup=room_detail_keyboard(room_id)
+        )
+
+    await callback.answer()
+
+# =================== КОНЕЦ ВИДЕО ФУНКЦИЙ ===================
+
+# Генератор календаря для выбора дат
+def generate_calendar_keyboard(year: int, month: int, selected_dates: list = None):
+    if selected_dates is None:
+        selected_dates = []
+
+    keyboard = []
+
+    # Заголовок с месяцем и годом
+    month_name = calendar.month_name[month]
+    header = [InlineKeyboardButton(
+        text=f"{month_name} {year}",
+        callback_data="ignore"
+    )]
+    keyboard.append(header)
+
+    # Дни недели
+    week_days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    keyboard.append([
+        InlineKeyboardButton(text=day, callback_data="ignore")
+        for day in week_days
+    ])
+
+    # Календарь
+    cal = calendar.monthcalendar(year, month)
+    today = datetime.now().date()
+
+    for week in cal:
+        row = []
+        for day in week:
+            if day == 0:
+                row.append(InlineKeyboardButton(text=" ", callback_data="ignore"))
+            else:
+                date = datetime(year, month, day).date()
+
+                # Проверяем, не прошедшая ли это дата
+                if date < today:
+                    row.append(InlineKeyboardButton(
+                        text=f"·{day}·",
+                        callback_data="ignore"
+                    ))
+                # Проверяем, выбрана ли дата
+                elif date in selected_dates:
+                    row.append(InlineKeyboardButton(
+                        text=f"✅ {day}",
+                        callback_data=f"unselect_date_{date.isoformat()}"
+                    ))
+                # Выходные дни подсвечиваем
+                elif date.weekday() in [4, 5, 6]:  # Пт, Сб, Вс
+                    row.append(InlineKeyboardButton(
+                        text=f"🔴 {day}",
+                        callback_data=f"select_date_{date.isoformat()}"
+                    ))
+                else:
+                    row.append(InlineKeyboardButton(
+                        text=str(day),
+                        callback_data=f"select_date_{date.isoformat()}"
+                    ))
+        keyboard.append(row)
+
+    # Навигация
+    nav_row = []
+    if month > 1 or year > datetime.now().year:
+        nav_row.append(InlineKeyboardButton(
+            text="◀️",
+            callback_data=f"calendar_{year}_{month - 1 if month > 1 else 12}_{year if month > 1 else year - 1}"
+        ))
+    nav_row.append(InlineKeyboardButton(
+        text="📅 Сегодня",
+        callback_data=f"calendar_{datetime.now().year}_{datetime.now().month}_current"
+    ))
+    nav_row.append(InlineKeyboardButton(
+        text="▶️",
+        callback_data=f"calendar_{year}_{month + 1 if month < 12 else 1}_{year if month < 12 else year + 1}"
+    ))
+    keyboard.append(nav_row)
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+# Быстрое бронирование
+@router.callback_query(lambda c: c.data and c.data.startswith("quick_book_"))
+async def quick_booking(callback: CallbackQuery, session: AsyncSession, state: FSMContext):
+    room_id = int(callback.data.split("_")[2])
+    room = await get_room(session, room_id)
+
+    if not room:
+        await callback.answer("Номер не найден")
+        return
+
+    # Сохраняем выбранный номер в состоянии
+    await state.update_data(room_id=room_id, room_name=room.name)
+
+    # Показываем популярные варианты дат
+    today = datetime.now().date()
+    weekend = today + timedelta(days=(5 - today.weekday()) % 7)  # Ближайшая пятница
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="🚀 Сегодня-Завтра",
+            callback_data=f"express_book_{room_id}_{today}_{today + timedelta(days=1)}"
+        )],
+        [InlineKeyboardButton(
+            text="🎉 Ближайшие выходные",
+            callback_data=f"express_book_{room_id}_{weekend}_{weekend + timedelta(days=2)}"
+        )],
+        [InlineKeyboardButton(
+            text="📅 Выбрать даты в календаре",
+            callback_data=f"calendar_book_{room_id}"
+        )],
+        [InlineKeyboardButton(
+            text="🔙 Назад",
+            callback_data=f"room_{room_id}"
+        )]
+    ])
+
+    await callback.message.answer(
+        f"⚡ Быстрое бронирование\n\n"
+        f"🛏 {room.name}\n"
+        f"💰 {room.price_per_night:,} сум/ночь (будни)\n"
+        f"💰 {room.weekend_price:,} сум/ночь (выходные)\n\n"
+        f"Выберите вариант:",
+        reply_markup=keyboard
+    )
+    await callback.answer()
+
+
+# Экспресс-бронирование
+@router.callback_query(lambda c: c.data and c.data.startswith("express_book_"))
+async def express_booking(callback: CallbackQuery, session: AsyncSession):
+    parts = callback.data.split("_")
+    room_id = int(parts[2])
+    check_in = datetime.fromisoformat(parts[3]).date()
+    check_out = datetime.fromisoformat(parts[4]).date()
+
+    # Проверяем доступность
+    is_available = await check_room_availability(
+        session, room_id,
+        check_in.isoformat(),
+        check_out.isoformat()
+    )
+
+    if not is_available:
+        await callback.answer("❌ К сожалению, номер занят на эти даты", show_alert=True)
+        return
+
+    # Рассчитываем стоимость
+    room = await get_room(session, room_id)
+    nights = (check_out - check_in).days
+
+    # Считаем выходные дни
+    weekend_nights = 0
+    current = check_in
+    while current < check_out:
+        if current.weekday() in [4, 5, 6]:  # Пт, Сб, Вс
+            weekend_nights += 1
+        current += timedelta(days=1)
+
+    weekday_nights = nights - weekend_nights
+    total_price = (weekday_nights * room.price_per_night) + (weekend_nights * room.weekend_price)
+
+    # Запрашиваем контакты
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="📱 Поделиться контактом",
+            callback_data=f"share_contact_{room_id}_{check_in}_{check_out}"
+        )],
+        [InlineKeyboardButton(
+            text="✍️ Ввести номер вручную",
+            callback_data=f"manual_contact_{room_id}_{check_in}_{check_out}"
+        )],
+        [InlineKeyboardButton(
+            text="❌ Отмена",
+            callback_data=f"room_{room_id}"
+        )]
+    ])
+
+    await callback.message.answer(
+        f"✅ Номер доступен!\n\n"
+        f"📋 Детали бронирования:\n"
+        f"🛏 {room.name}\n"
+        f"📅 Заезд: {check_in.strftime('%d.%m.%Y')}\n"
+        f"📅 Выезд: {check_out.strftime('%d.%m.%Y')}\n"
+        f"🌙 Ночей: {nights} (будни: {weekday_nights}, выходные: {weekend_nights})\n"
+        f"💰 Итого: {total_price:,} сум\n\n"
+        f"Для завершения бронирования нужен ваш контакт:",
+        reply_markup=keyboard
+    )
+    await callback.answer()

@@ -3,370 +3,669 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Курорт Oqtoshsoy</title>
-    <!-- Bootstrap CSS -->
+    <title>Курорт Oqtoshsoy - Ваш отдых в горах</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Telegram WebApp JS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --primary-color: #2c5f2d;
+            --secondary-color: #97bc62;
+            --accent-color: #ff6b6b;
+            --bg-light: #f8f9fa;
+            --text-dark: #2c3e50;
+        }
+
         body {
-            background-color: var(--tg-theme-bg-color, #f5f5f5);
-            color: var(--tg-theme-text-color, #222);
+            background-color: var(--tg-theme-bg-color, var(--bg-light));
+            color: var(--tg-theme-text-color, var(--text-dark));
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding-bottom: 20px;
         }
-        .tab-content {
-            padding-top: 15px;
+
+        /* Анимации */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
+        .animate-fade-in {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        /* Заголовок с градиентом */
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .hero-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            z-index: 1;
+            position: relative;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+            z-index: 1;
+            position: relative;
+        }
+
+        /* Улучшенные табы */
+        .nav-tabs {
+            border: none;
+            background: white;
+            border-radius: 15px;
+            padding: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-dark);
+            padding: 10px 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 15px rgba(44, 95, 45, 0.3);
+        }
+
+        .nav-tabs .nav-link:hover:not(.active) {
+            background: rgba(44, 95, 45, 0.1);
+        }
+
+        /* Карточки номеров */
         .room-card {
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            background-color: white;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .room-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .room-img, .carousel-item img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+
+        /* Видео плеер */
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            margin-bottom: 15px;
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
-            background-color: #fff;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
-        .room-img {
+
+        .video-container iframe, .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 200px;
-            object-fit: cover;
+            height: 100%;
         }
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100px;
-        }
-        /* Стили для карусели */
-        .carousel-item img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-        .carousel-indicators {
-            margin-bottom: 0;
-        }
-        .carousel-indicators button {
-            width: 10px;
-            height: 10px;
+
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.9);
             border-radius: 50%;
-            background-color: rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
         }
-        .carousel-control-prev, .carousel-control-next {
-            width: 10%;
+
+        .play-button:hover {
+            background: white;
+            transform: translate(-50%, -50%) scale(1.1);
         }
-        /* Для телефонов уменьшим отступы в карточках комнат */
+
+        .play-button i {
+            font-size: 30px;
+            color: var(--primary-color);
+            margin-left: 5px;
+        }
+
+        /* Бейджи и теги */
+        .badge-custom {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.85em;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            display: inline-block;
+        }
+
+        .badge-amenity {
+            background-color: rgba(151, 188, 98, 0.2);
+            color: var(--primary-color);
+        }
+
+        .badge-special {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            color: white;
+        }
+
+        /* Форма бронирования */
+        .booking-form {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(44, 95, 45, 0.25);
+        }
+
+        /* Кнопки */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(44, 95, 45, 0.4);
+        }
+
+        .btn-book {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-book:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        /* Секция преимуществ */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            font-size: 2.5em;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left: 4px solid #4caf50;
+        }
+
+        .notification.error {
+            border-left: 4px solid #f44336;
+        }
+
+        /* Загрузчик */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Адаптивность */
         @media (max-width: 768px) {
-            .card-body {
-                padding: 0.75rem;
-            }
+            .hero-title { font-size: 1.5em; }
+            .hero-subtitle { font-size: 1em; }
+            .room-img, .carousel-item img { height: 200px; }
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
     <div class="container mt-3">
+        <!-- Hero секция -->
+        <div class="hero-section animate-fade-in">
+            <h1 class="hero-title">🏔️ Курорт Oqtoshsoy</h1>
+            <p class="hero-subtitle">Ваш идеальный отдых в горах Узбекистана</p>
+        </div>
+
+        <!-- Навигация -->
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="rooms-tab" data-bs-toggle="tab" data-bs-target="#rooms" type="button" role="tab">Номера</button>
+                <button class="nav-link active" id="rooms-tab" data-bs-toggle="tab" data-bs-target="#rooms" type="button">
+                    <i class="fas fa-bed"></i> Номера
+                </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking" type="button" role="tab">Бронирование</button>
+                <button class="nav-link" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking" type="button">
+                    <i class="fas fa-calendar-check"></i> Бронирование
+                </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button" role="tab">О курорте</button>
+                <button class="nav-link" id="tours-tab" data-bs-toggle="tab" data-bs-target="#tours" type="button">
+                    <i class="fas fa-video"></i> Видео-туры
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button">
+                    <i class="fas fa-info-circle"></i> О курорте
+                </button>
             </li>
         </ul>
 
         <div class="tab-content" id="myTabContent">
             <!-- Вкладка с номерами -->
             <div class="tab-pane fade show active" id="rooms" role="tabpanel">
-                <div id="loading-rooms" class="loading">
+                <div id="loading-rooms" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Загрузка...</span>
                     </div>
+                    <p class="mt-2">Загружаем номера...</p>
                 </div>
-
                 <div id="roomsContainer"></div>
             </div>
 
             <!-- Вкладка бронирования -->
             <div class="tab-pane fade" id="booking" role="tabpanel">
-                <div class="card mt-3">
-                    <div class="card-body">
-                        <h3 class="mb-4">Забронировать номер</h3>
-                        <form id="bookingForm">
-                            <div class="mb-3">
-                                <label for="roomSelect" class="form-label">Выберите номер</label>
-                                <select class="form-select" id="roomSelect" required>
-                                    <option value="" selected disabled>Выберите номер</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="checkInDate" class="form-label">Дата заезда</label>
+                <div class="booking-form animate-fade-in">
+                    <h3 class="mb-4"><i class="fas fa-calendar-alt"></i> Забронировать номер</h3>
+                    <form id="bookingForm">
+                        <div class="mb-3">
+                            <label for="roomSelect" class="form-label">
+                                <i class="fas fa-door-open"></i> Выберите номер
+                            </label>
+                            <select class="form-select" id="roomSelect" required>
+                                <option value="" selected disabled>Выберите номер из списка</option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="checkInDate" class="form-label">
+                                    <i class="fas fa-sign-in-alt"></i> Дата заезда
+                                </label>
                                 <input type="date" class="form-control" id="checkInDate" required>
                             </div>
-                            <div class="mb-3">
-                                <label for="checkOutDate" class="form-label">Дата выезда</label>
+                            <div class="col-md-6 mb-3">
+                                <label for="checkOutDate" class="form-label">
+                                    <i class="fas fa-sign-out-alt"></i> Дата выезда
+                                </label>
                                 <input type="date" class="form-control" id="checkOutDate" required>
                             </div>
-                            <div class="mb-3">
-                                <label for="guestsNumber" class="form-label">Количество гостей</label>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="guestsNumber" class="form-label">
+                                    <i class="fas fa-users"></i> Количество гостей
+                                </label>
                                 <input type="number" class="form-control" id="guestsNumber" min="1" value="1" required>
                             </div>
-                            <div class="mb-3">
-                                <label for="phoneNumber" class="form-label">Контактный телефон</label>
+                            <div class="col-md-6 mb-3">
+                                <label for="phoneNumber" class="form-label">
+                                    <i class="fas fa-phone"></i> Контактный телефон
+                                </label>
                                 <input type="tel" class="form-control" id="phoneNumber" placeholder="+998 __ ___ __ __">
                             </div>
-                            <div class="mb-3" id="price-info" style="display: none;">
-                                <div class="alert alert-info">
-                                    <p class="mb-0">Итоговая стоимость: <span id="totalPrice">0</span> сум</p>
-                                    <p class="mb-0">Количество ночей: <span id="nightsCount">0</span></p>
+                        </div>
+
+                        <div class="mb-3" id="price-info" style="display: none;">
+                            <div class="alert alert-info">
+                                <h5><i class="fas fa-calculator"></i> Расчет стоимости:</h5>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <p class="mb-1">Количество ночей: <strong id="nightsCount">0</strong></p>
+                                        <p class="mb-1">Будние дни: <strong id="weekdayNights">0</strong></p>
+                                        <p class="mb-0">Выходные: <strong id="weekendNights">0</strong></p>
+                                    </div>
+                                    <div class="col-6 text-end">
+                                        <p class="mb-0" style="font-size: 1.5em;">
+                                            <strong id="totalPrice">0</strong> сум
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100" id="submitBtn">Забронировать</button>
-                        </form>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" id="submitBtn">
+                            <i class="fas fa-check-circle"></i> Забронировать
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Вкладка видео-туров -->
+            <div class="tab-pane fade" id="tours" role="tabpanel">
+                <div class="animate-fade-in">
+                    <h3 class="mb-4"><i class="fas fa-video"></i> Виртуальные туры</h3>
+
+                    <!-- Общее видео курорта -->
+                    <div class="mb-4">
+                        <h5>Обзор курорта Oqtoshsoy</h5>
+                        <div class="video-container">
+                            <div class="play-button" onclick="playVideo('resort-overview')">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <img src="https://i.imgur.com/ZXBtVw7.jpg" class="w-100" alt="Обзор курорта">
+                        </div>
+                    </div>
+
+                    <!-- Видео-туры по зонам -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="video-container">
+                                    <div class="play-button" onclick="playVideo('pool-tour')">
+                                        <i class="fas fa-play"></i>
+                                    </div>
+                                    <img src="https://i.imgur.com/nf1aE8m.jpg" class="w-100" alt="Бассейн">
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="card-title">Бассейн и зона отдыха</h6>
+                                    <p class="card-text">Открытый и закрытый бассейны</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="video-container">
+                                    <div class="play-button" onclick="playVideo('restaurant-tour')">
+                                        <i class="fas fa-play"></i>
+                                    </div>
+                                    <img src="https://i.imgur.com/Ecz64bK.jpg" class="w-100" alt="Ресторан">
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="card-title">Ресторан и кухня</h6>
+                                    <p class="card-text">Национальная и европейская кухня</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 360° туры -->
+                    <h5 class="mt-4 mb-3"><i class="fas fa-street-view"></i> 360° туры</h5>
+                    <div class="features-grid">
+                        <div class="feature-card" onclick="open360Tour('territory')">
+                            <div class="feature-icon">🏞️</div>
+                            <h6>Территория</h6>
+                        </div>
+                        <div class="feature-card" onclick="open360Tour('rooms')">
+                            <div class="feature-icon">🛏️</div>
+                            <h6>Номера</h6>
+                        </div>
+                        <div class="feature-card" onclick="open360Tour('restaurant')">
+                            <div class="feature-icon">🍽️</div>
+                            <h6>Ресторан</h6>
+                        </div>
+                        <div class="feature-card" onclick="open360Tour('spa')">
+                            <div class="feature-icon">💆</div>
+                            <h6>SPA-центр</h6>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Вкладка о курорте -->
             <div class="tab-pane fade" id="about" role="tabpanel">
-                <div class="card mt-3">
-                    <div class="card-body">
-                        <h3 class="card-title">О курорте Oqtoshsoy</h3>
-                        <p class="card-text">Наш курорт расположен в живописном горном ущелье, в 120 км от города Ташкент.</p>
-                        <p><strong>Расположение:</strong> Ташкентская область, Бостанлыкский район</p>
-                        <p><strong>Высота над уровнем моря:</strong> 1200 м</p>
-                        <p><strong>На территории курорта:</strong></p>
-                        <ul>
-                            <li>Открытый и закрытый бассейны</li>
-                            <li>Ресторан с национальной и европейской кухней</li>
-                            <li>SPA-центр</li>
-                            <li>Детская площадка</li>
-                            <li>Зоны для пикника</li>
-                        </ul>
-                        <p>Мы работаем круглый год и предлагаем различные виды отдыха в зависимости от сезона.</p>
-                        <p><strong>Контакты:</strong></p>
-                        <p>Телефон: +99890 096 50 55</p>
+                <div class="animate-fade-in">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h3 class="card-title"><i class="fas fa-mountain"></i> О курорте Oqtoshsoy</h3>
+                            <p class="card-text">Наш курорт расположен в живописном горном ущелье, в 120 км от города Ташкент.</p>
+
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <h5><i class="fas fa-map-marker-alt"></i> Расположение</h5>
+                                    <p>Ташкентская область, Бостанлыкский район</p>
+                                    <p><strong>Высота:</strong> 1200 м над уровнем моря</p>
+                                    <p><strong>Климат:</strong> Горный, умеренный</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5><i class="fas fa-phone-alt"></i> Контакты</h5>
+                                    <p><strong>Телефон:</strong> +998 90 096 50 55</p>
+                                    <p><strong>Telegram:</strong> @Oqtosh_Soy</p>
+                                    <p><strong>Режим работы:</strong> Круглый год</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Преимущества -->
+                    <h5 class="mb-3"><i class="fas fa-star"></i> Наши преимущества</h5>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">🏊</div>
+                            <h6>Бассейны</h6>
+                            <small>Открытый и закрытый</small>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🍽️</div>
+                            <h6>Ресторан</h6>
+                            <small>Национальная кухня</small>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">💆</div>
+                            <h6>SPA-центр</h6>
+                            <small>Массаж и сауна</small>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">👶</div>
+                            <h6>Для детей</h6>
+                            <small>Площадка и аниматоры</small>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🚗</div>
+                            <h6>Парковка</h6>
+                            <small>Бесплатная охраняемая</small>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📶</div>
+                            <h6>Wi-Fi</h6>
+                            <small>На всей территории</small>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Модальное окно для сообщений -->
-    <div class="modal fade" id="messageModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Сообщение</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="modalMessage"></div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Уведомления -->
+    <div id="notification" class="notification"></div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Основной скрипт -->
     <script>
-        // Данные о номерах (заранее загруженные)
+        // Обновленные данные о номерах с видео
         const roomsData = {
-          "status": "success",
-          "rooms": [
-            {"id":9,"name":"Тапчан малый (7 местный)","description":"Традиционный тапчан под открытым небом для отдыха компанией до 7 человек.","room_type":"tapchan","price_per_night":300000.0,"weekend_price":300000.0,"capacity":7,"is_available":1,"image_url":"https://i.imgur.com/cncqZno.jpeg","photos":["https://i.imgur.com/x5QeamP.jpeg","https://i.imgur.com/zjcHmT8.jpeg", "https://i.imgur.com/6qssryd.jpeg", "https://i.imgur.com/3GaPqYk.jpeg"],"video_url":null,"amenities":["Зона для пикника","Мангал (по запросу)","Доступ к общей инфраструктуре"],"meal_included":0,"with_breakfast":0,"season_type":"all"},
-            {"id":10,"name":"Тапчан большой (15 местный)","description":"Большой тапчан для отдыха большой компанией до 15 человек.","room_type":"tapchan","price_per_night":500000.0,"weekend_price":500000.0,"capacity":15,"is_available":1,"image_url":"https://i.imgur.com/CGdWTDr.jpeg","photos":["https://i.imgur.com/UAd3uLg.jpeg","https://i.imgur.com/UAd3uLg.jpeg", "https://i.imgur.com/0Ck64s1.jpeg", "https://i.imgur.com/V5nixa8.jpeg", "https://i.imgur.com/wvSTt4l.jpeg", "https://i.imgur.com/HLvp6mQ.jpeg", "https://i.imgur.com/aQnYr6B.jpeg", "https://i.imgur.com/BJiRg65.jpeg"],"video_url":null,"amenities":["Зона для пикника","Мангал (по запросу)","Доступ к общей инфраструктуре"],"meal_included":0,"with_breakfast":0,"season_type":"all"},
-            {"id":1,"name":"Стандарт 2-х местный","description":"Уютный номер для двух человек с видом на горы. Включает все необходимое для комфортного отдыха.","room_type":"standard","price_per_night":700000.0,"weekend_price":900000.0,"capacity":2,"is_available":1,"image_url":"https://i.imgur.com/Boeke4g.jpeg","photos":["https://i.imgur.com/njJXDo1.jpeg","https://i.imgur.com/LRgKg5y.jpeg","https://i.imgur.com/SAS86LR.jpeg","https://i.imgur.com/zSmB3i4.jpeg","https://i.imgur.com/8I61dlC.jpeg"],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Душ"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":2,"name":"Люкс 2-х местный","description":"Просторный номер люкс с отдельной гостиной для двух человек. Повышенный уровень комфорта.","room_type":"luxury","price_per_night":900000.0,"weekend_price":1200000.0,"capacity":2,"is_available":1,"image_url":"https://i.imgur.com/KV6rIiC.jpeg","photos":["https://i.imgur.com/DmYAjCc.jpeg","https://i.imgur.com/vTE0ZOA.jpeg", "https://i.imgur.com/DNlssDw.jpeg", "https://i.imgur.com/QPF3u3L.jpeg", "https://i.imgur.com/P4y7kYu.jpeg", "https://i.imgur.com/e49bB0r.jpeg", "https://i.imgur.com/lADkF97.jpeg", "https://i.imgur.com/Pt8oYfd.jpeg"],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Ванная","Мини-бар"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":3,"name":"Стандарт 4-х местный","description":"Номер с двумя спальнями для семьи или компании до 4 человек.","room_type":"standard","price_per_night":1200000.0,"weekend_price":1500000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/ppfEnxq.jpeg","photos":["https://i.imgur.com/8tMhdg6.jpeg","https://i.imgur.com/i66Bimf.jpeg", "https://i.imgur.com/tFyIgu1.jpeg", "https://i.imgur.com/Usbo4G7.jpeg","https://i.imgur.com/Zv4ltez.jpeg"],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Душ","Детская кроватка (по запросу)"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":4,"name":"VIP малый 4-х местный","description":"Улучшенный номер для компании до 4 человек с дополнительными удобствами.","room_type":"vip","price_per_night":1300000.0,"weekend_price":1700000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/6ekqUZH.jpeg","photos":["https://i.imgur.com/s5bOB9F.jpeg","https://i.imgur.com/LRHImsi.jpeg", "https://i.imgur.com/i35h4J4.jpeg", "https://i.imgur.com/VKqi8Z8.jpeg", "https://i.imgur.com/6X0Iwm0.jpeg", "https://i.imgur.com/ZEFVtMQ.jpeg", "https://i.imgur.com/ZwAWzRr.jpeg", "https://i.imgur.com/DaYpUZD.jpeg", "https://i.imgur.com/zL87brG.jpeg", "https://i.imgur.com/fYuSYBV.jpeg", "https://i.imgur.com/0rzD5HB.jpeg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Мини-кухня"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":5,"name":"VIP большой 4-х местный","description":"Премиум номер для компании до 4 человек. Просторные комнаты с повышенным комфортом.","room_type":"vip","price_per_night":1600000.0,"weekend_price":1900000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/Qvixz09.jpeg","photos":["https://i.imgur.com/13qxFCt.jpeg","https://i.imgur.com/sLqAOqC.jpeg", "https://i.imgur.com/Z7YDv4P.jpeg", "https://i.imgur.com/CNYiAzk.jpeg", "https://i.imgur.com/NRbwOKp.jpeg", "https://i.imgur.com/ZEFVtMQ.jpeg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Джакузи","Мини-кухня","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":6,"name":"Апартамент 4-х местный","description":"Апартаменты с отдельной гостиной и кухней для компании до 4 человек.","room_type":"apartment","price_per_night":1800000.0,"weekend_price":2200000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/A0JWDfF.jpeg","photos":["https://i.imgur.com/SJYt1kR.jpeg", "https://i.imgur.com/1fx1Nlj.jpeg", "https://i.imgur.com/qtEWZvm.jpeg", "https://i.imgur.com/1Bhiv12.jpeg", "https://i.imgur.com/aZxbHUh.jpeg", "https://i.imgur.com/OfFsi6l.jpeg", "https://i.imgur.com/8GcPCuo.jpeg", "https://i.imgur.com/iJRt59K.jpeg", "https://i.imgur.com/nJGaZJm.jpeg", "https://i.imgur.com/d6PTlLv.jpeg", "https://i.imgur.com/ovp8TtU.jpeg", "https://i.imgur.com/EoN7tt2.jpeg", "https://i.imgur.com/MDF4eMt.jpeg", "https://i.imgur.com/MDF4eMt.jpeg", "https://i.imgur.com/J9p0dUk.jpeg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Полноценная кухня","Гостиная"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":7,"name":"Котедж 6-ти местный","description":"Отдельный коттедж для большой семьи или компании до 6 человек с собственной территорией.","room_type":"cottage","price_per_night":3000000.0,"weekend_price":3500000.0,"capacity":6,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":["https://i.imgur.com/nf1aE8m.jpg","https://i.imgur.com/Ecz64bK.jpg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Кухня","Барбекю зона","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
-            {"id":8,"name":"Президентский апартамент 8-ми местный","description":"Эксклюзивные апартаменты высшего уровня для компании до 8 человек с максимальным комфортом.","room_type":"president","price_per_night":3800000.0,"weekend_price":4500000.0,"capacity":8,"is_available":1,"image_url":"https://i.imgur.com/UnPKKfe.jpeg","photos":["https://i.imgur.com/hAj8zjN.jpeg","https://i.imgur.com/Zk4KSKH.jpeg", "https://i.imgur.com/Zk4KSKH.jpeg", "https://i.imgur.com/qxRnLNw.jpeg", "https://i.imgur.com/6CwZ33K.jpeg", "https://i.imgur.com/FI8LBZD.jpeg", "https://i.imgur.com/xx2cucr.jpeg", "https://i.imgur.com/86DhBdh.jpeg", "https://i.imgur.com/p3sJA3y.jpeg", "https://i.imgur.com/BB4kEIJ.jpeg", "https://i.imgur.com/j7XmuMq.jpeg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Джакузи","Сауна","Кухня","Бильярд","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"}
-          ]
+            "status": "success",
+            "rooms": [
+                {"id":9,"name":"Тапчан малый (7 местный)","description":"Традиционный тапчан под открытым небом для отдыха компанией до 7 человек.","room_type":"tapchan","price_per_night":300000.0,"weekend_price":300000.0,"capacity":7,"is_available":1,"image_url":"https://i.imgur.com/cncqZno.jpeg","photos":["https://i.imgur.com/x5QeamP.jpeg","https://i.imgur.com/zjcHmT8.jpeg", "https://i.imgur.com/6qssryd.jpeg", "https://i.imgur.com/3GaPqYk.jpeg"],"video_url":"https://example.com/videos/tapchan.mp4","amenities":["Зона для пикника","Мангал (по запросу)","Доступ к общей инфраструктуре"],"meal_included":0,"with_breakfast":0,"season_type":"all"},
+                {"id":10,"name":"Тапчан большой (15 местный)","description":"Большой тапчан для отдыха большой компанией до 15 человек.","room_type":"tapchan","price_per_night":500000.0,"weekend_price":500000.0,"capacity":15,"is_available":1,"image_url":"https://i.imgur.com/CGdWTDr.jpeg","photos":["https://i.imgur.com/UAd3uLg.jpeg","https://i.imgur.com/UAd3uLg.jpeg", "https://i.imgur.com/0Ck64s1.jpeg", "https://i.imgur.com/V5nixa8.jpeg", "https://i.imgur.com/wvSTt4l.jpeg", "https://i.imgur.com/HLvp6mQ.jpeg", "https://i.imgur.com/aQnYr6B.jpeg", "https://i.imgur.com/BJiRg65.jpeg"],"video_url":null,"amenities":["Зона для пикника","Мангал (по запросу)","Доступ к общей инфраструктуре"],"meal_included":0,"with_breakfast":0,"season_type":"all"},
+                {"id":1,"name":"Стандарт 2-х местный","description":"Уютный номер для двух человек с видом на горы. Включает все необходимое для комфортного отдыха.","room_type":"standard","price_per_night":700000.0,"weekend_price":900000.0,"capacity":2,"is_available":1,"image_url":"https://i.imgur.com/Boeke4g.jpeg","photos":["https://i.imgur.com/njJXDo1.jpeg","https://i.imgur.com/LRgKg5y.jpeg","https://i.imgur.com/SAS86LR.jpeg","https://i.imgur.com/zSmB3i4.jpeg","https://i.imgur.com/8I61dlC.jpeg"],"video_url":"https://example.com/videos/standard.mp4","amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Душ"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+                {"id":2,"name":"Люкс 2-х местный","description":"Просторный номер люкс с отдельной гостиной для двух человек. Повышенный уровень комфорта.","room_type":"luxury","price_per_night":900000.0,"weekend_price":1200000.0,"capacity":2,"is_available":1,"image_url":"https://i.imgur.com/KV6rIiC.jpeg","photos":["https://i.imgur.com/DmYAjCc.jpeg","https://i.imgur.com/vTE0ZOA.jpeg", "https://i.imgur.com/DNlssDw.jpeg", "https://i.imgur.com/QPF3u3L.jpeg", "https://i.imgur.com/P4y7kYu.jpeg", "https://i.imgur.com/e49bB0r.jpeg", "https://i.imgur.com/lADkF97.jpeg", "https://i.imgur.com/Pt8oYfd.jpeg"],"video_url":"https://example.com/videos/luxury.mp4","amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Ванная","Мини-бар"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+                {"id":3,"name":"Стандарт 4-х местный","description":"Номер с двумя спальнями для семьи или компании до 4 человек.","room_type":"standard","price_per_night":1200000.0,"weekend_price":1500000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/ppfEnxq.jpeg","photos":["https://i.imgur.com/8tMhdg6.jpeg","https://i.imgur.com/i66Bimf.jpeg", "https://i.imgur.com/tFyIgu1.jpeg", "https://i.imgur.com/Usbo4G7.jpeg","https://i.imgur.com/Zv4ltez.jpeg"],"video_url":null,"amenities":["Wi-Fi","TV","Холодильник","Кондиционер","Душ","Детская кроватка (по запросу)"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+                {"id":4,"name":"VIP малый 4-х местный","description":"Улучшенный номер для компании до 4 человек с дополнительными удобствами.","room_type":"vip","price_per_night":1300000.0,"weekend_price":1700000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/6ekqUZH.jpeg","photos":["https://i.imgur.com/s5bOB9F.jpeg","https://i.imgur.com/LRHImsi.jpeg", "https://i.imgur.com/i35h4J4.jpeg", "https://i.imgur.com/VKqi8Z8.jpeg", "https://i.imgur.com/6X0Iwm0.jpeg", "https://i.imgur.com/ZEFVtMQ.jpeg", "https://i.imgur.com/ZwAWzRr.jpeg", "https://i.imgur.com/DaYpUZD.jpeg", "https://i.imgur.com/zL87brG.jpeg", "https://i.imgur.com/fYuSYBV.jpeg", "https://i.imgur.com/0rzD5HB.jpeg"],"video_url":"https://example.com/videos/vip.mp4","amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Мини-кухня"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+                {"id":5,"name":"VIP большой 4-х местный","description":"Премиум номер для компании до 4 человек. Просторные комнаты с повышенным комфортом.","room_type":"vip","price_per_night":1600000.0,"weekend_price":1900000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/Qvixz09.jpeg","photos":["https://i.imgur.com/13qxFCt.jpeg","https://i.imgur.com/sLqAOqC.jpeg", "https://i.imgur.com/Z7YDv4P.jpeg", "https://i.imgur.com/CNYiAzk.jpeg", "https://i.imgur.com/NRbwOKp.jpeg", "https://i.imgur.com/ZEFVtMQ.jpeg"],"video_url":null,"amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Джакузи","Мини-кухня","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+                {"id":6,"name":"Апартамент 4-х местный","description":"Апартаменты с отдельной гостиной и кухней для компании до 4 человек.","room_type":"apartment","price_per_night":1800000.0,"weekend_price":2200000.0,"capacity":4,"is_available":1,"image_url":"https://i.imgur.com/A0JWDfF.jpeg","photos":["https://i.imgur.com/SJYt1kR.jpeg", "https://i.imgur.com/1fx1Nlj.jpeg", "https://i.imgur.com/qtEWZvm.jpeg", "https://i.imgur.com/1Bhiv12.jpeg", "https://i.imgur.com/aZxbHUh.jpeg", "https://i.imgur.com/OfFsi6l.jpeg", "https://i.imgur.com/8GcPCuo.jpeg", "https://i.imgur.com/iJRt59K.jpeg", "https://i.imgur.com/nJGaZJm.jpeg", "https://i.imgur.com/d6PTlLv.jpeg", "https://i.imgur.com/ovp8TtU.jpeg", "https://i.imgur.com/EoN7tt2.jpeg", "https://i.imgur.com/MDF4eMt.jpeg", "https://i.imgur.com/MDF4eMt.jpeg", "https://i.imgur.com/J9p0dUk.jpeg"],"video_url":"https://example.com/videos/apartment.mp4","amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Полноценная кухня","Гостиная"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+                {"id":7,"name":"Котедж 6-ти местный","description":"Отдельный коттедж для большой семьи или компании до 6 человек с собственной территорией.","room_type":"cottage","price_per_night":3000000.0,"weekend_price":3500000.0,"capacity":6,"is_available":1,"image_url":"https://i.imgur.com/ZXBtVw7.jpg","photos":["https://i.imgur.com/nf1aE8m.jpg","https://i.imgur.com/Ecz64bK.jpg"],"video_url":"https://example.com/videos/cottage.mp4","amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Ванная","Кухня","Барбекю зона","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"},
+                {"id":8,"name":"Президентский апартамент 8-ми местный","description":"Эксклюзивные апартаменты высшего уровня для компании до 8 человек с максимальным комфортом.","room_type":"president","price_per_night":3800000.0,"weekend_price":4500000.0,"capacity":8,"is_available":1,"image_url":"https://i.imgur.com/UnPKKfe.jpeg","photos":["https://i.imgur.com/hAj8zjN.jpeg","https://i.imgur.com/Zk4KSKH.jpeg", "https://i.imgur.com/Zk4KSKH.jpeg", "https://i.imgur.com/qxRnLNw.jpeg", "https://i.imgur.com/6CwZ33K.jpeg", "https://i.imgur.com/FI8LBZD.jpeg", "https://i.imgur.com/xx2cucr.jpeg", "https://i.imgur.com/86DhBdh.jpeg", "https://i.imgur.com/p3sJA3y.jpeg", "https://i.imgur.com/BB4kEIJ.jpeg", "https://i.imgur.com/j7XmuMq.jpeg"],"video_url":"https://example.com/videos/president.mp4","amenities":["Wi-Fi","Smart TV","Холодильник","Кондиционер","Джакузи","Сауна","Кухня","Бильярд","Терраса"],"meal_included":1,"with_breakfast":1,"season_type":"all"}
+            ]
         };
 
+        // Инициализация приложения
         document.addEventListener('DOMContentLoaded', function() {
-            // Инициализация Telegram WebApp
             const tgApp = window.Telegram?.WebApp;
             if (tgApp) {
                 tgApp.expand();
                 tgApp.ready();
-                console.log("Telegram WebApp инициализирован");
-            } else {
-                console.warn("Telegram WebApp недоступен");
+
+                // Применяем тему Telegram
+                document.documentElement.style.setProperty('--tg-theme-bg-color', tgApp.themeParams.bg_color || '#f5f5f5');
+                document.documentElement.style.setProperty('--tg-theme-text-color', tgApp.themeParams.text_color || '#222');
             }
 
-            // Загрузка номеров
-            loadRooms();
+            // Загружаем номера
+            setTimeout(() => loadRooms(), 500);
 
-            // Настройка минимальной даты
+            // Настройка дат
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('checkInDate').setAttribute('min', today);
             document.getElementById('checkOutDate').setAttribute('min', today);
 
-            // Обработчики событий формы
-            document.getElementById('checkInDate').addEventListener('change', function() {
-                const checkInDate = new Date(this.value);
-                checkInDate.setDate(checkInDate.getDate() + 1);
-                const minCheckOutDate = checkInDate.toISOString().split('T')[0];
-                document.getElementById('checkOutDate').setAttribute('min', minCheckOutDate);
-
-                const currentCheckOutDate = document.getElementById('checkOutDate').value;
-                if (currentCheckOutDate && new Date(currentCheckOutDate) <= new Date(this.value)) {
-                    document.getElementById('checkOutDate').value = minCheckOutDate;
-                }
-
-                calculatePrice();
-            });
-
+            // Обработчики событий
+            document.getElementById('checkInDate').addEventListener('change', handleDateChange);
             document.getElementById('checkOutDate').addEventListener('change', calculatePrice);
             document.getElementById('roomSelect').addEventListener('change', calculatePrice);
             document.getElementById('guestsNumber').addEventListener('change', calculatePrice);
-
-            document.getElementById('bookingForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                bookRoom();
-            });
+            document.getElementById('bookingForm').addEventListener('submit', handleBooking);
         });
 
-        // Функция загрузки номеров с поддержкой галереи изображений
+        // Загрузка номеров с анимацией
         function loadRooms() {
-            console.log("Загрузка номеров из встроенных данных");
-
             const loadingElement = document.getElementById('loading-rooms');
             const roomsContainer = document.getElementById('roomsContainer');
             const roomSelect = document.getElementById('roomSelect');
 
             try {
-                // Группируем номера по типам
                 const roomTypes = {
-                    'standard': 'Стандартные номера',
-                    'luxury': 'Люкс номера',
-                    'vip': 'VIP номера',
-                    'apartment': 'Апартаменты',
-                    'cottage': 'Коттеджи',
-                    'president': 'Президентские апартаменты',
-                    'tapchan': 'Тапчаны'
+                    'standard': { name: 'Стандартные номера', icon: '🏠' },
+                    'luxury': { name: 'Люкс номера', icon: '🏡' },
+                    'vip': { name: 'VIP номера', icon: '🏰' },
+                    'apartment': { name: 'Апартаменты', icon: '🏢' },
+                    'cottage': { name: 'Коттеджи', icon: '🏘️' },
+                    'president': { name: 'Президентские апартаменты', icon: '👑' },
+                    'tapchan': { name: 'Тапчаны', icon: '🎪' }
                 };
 
                 roomsContainer.innerHTML = '';
-                roomSelect.innerHTML = '<option value="" selected disabled>Выберите номер</option>';
+                roomSelect.innerHTML = '<option value="" selected disabled>Выберите номер из списка</option>';
 
-                // Для каждого типа номеров
-                Object.keys(roomTypes).forEach(type => {
+                Object.keys(roomTypes).forEach((type, typeIndex) => {
                     const roomsOfType = roomsData.rooms.filter(room => room.room_type === type);
 
                     if (roomsOfType.length > 0) {
-                        // Создаем заголовок секции
-                        const sectionHeader = document.createElement('h4');
-                        sectionHeader.className = 'mt-4 mb-3';
-                        sectionHeader.textContent = roomTypes[type];
+                        // Заголовок секции с анимацией
+                        const sectionHeader = document.createElement('div');
+                        sectionHeader.className = 'animate-fade-in';
+                        sectionHeader.style.animationDelay = `${typeIndex * 0.1}s`;
+                        sectionHeader.innerHTML = `
+                            <h4 class="mt-4 mb-3">
+                                ${roomTypes[type].icon} ${roomTypes[type].name}
+                            </h4>
+                        `;
                         roomsContainer.appendChild(sectionHeader);
 
-                        // Добавляем комнаты этого типа
-                        roomsOfType.forEach(room => {
+                        roomsOfType.forEach((room, index) => {
                             // Создаем карточку номера
-                            const roomCard = document.createElement('div');
-                            roomCard.className = 'room-card';
-
-                            // Формат цены
-                            let priceText;
-                            if (room.weekend_price && room.weekend_price !== room.price_per_night) {
-                                priceText = `${formatPrice(room.price_per_night)} сум (ПН-ЧТ) / ${formatPrice(room.weekend_price)} сум (ПТ-ВС)`;
-                            } else {
-                                priceText = `${formatPrice(room.price_per_night)} сум/ночь`;
-                            }
-
-                            // Формирование удобств
-                            const amenitiesHtml = room.amenities.map(a =>
-                                `<span class="badge bg-light text-dark me-1 mb-1">${a}</span>`
-                            ).join('');
-
-                            // Определяем, нужно ли добавлять галерею
-                            let galleryHtml = '';
-                            if (room.photos && room.photos.length > 0) {
-                                // Создаем ID для карусели
-                                const carouselId = `carousel-${room.id}`;
-
-                                // Создаем индикаторы для карусели
-                                let indicatorsHtml = '';
-                                let slidesHtml = '';
-
-                                // Первый слайд - основное изображение
-                                indicatorsHtml += `<button type="button" data-bs-target="#${carouselId}" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>`;
-                                slidesHtml += `
-                                    <div class="carousel-item active">
-                                        <img src="${room.image_url}" class="d-block w-100 room-img" alt="${room.name}">
-                                    </div>
-                                `;
-
-                                // Добавляем дополнительные фотографии
-                                room.photos.forEach((photo, index) => {
-                                    indicatorsHtml += `<button type="button" data-bs-target="#${carouselId}" data-bs-slide-to="${index + 1}" aria-label="Slide ${index + 2}"></button>`;
-                                    slidesHtml += `
-                                        <div class="carousel-item">
-                                            <img src="${photo}" class="d-block w-100 room-img" alt="${room.name} - фото ${index + 2}">
-                                        </div>
-                                    `;
-                                });
-
-                                // Формируем полную карусель
-                                galleryHtml = `
-                                    <div id="${carouselId}" class="carousel slide" data-bs-ride="carousel">
-                                        <div class="carousel-indicators">
-                                            ${indicatorsHtml}
-                                        </div>
-                                        <div class="carousel-inner">
-                                            ${slidesHtml}
-                                        </div>
-                                        <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
-                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                            <span class="visually-hidden">Предыдущий</span>
-                                        </button>
-                                        <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
-                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                            <span class="visually-hidden">Следующий</span>
-                                        </button>
-                                    </div>
-                                `;
-                            } else {
-                                // Если дополнительных фото нет, показываем только основное изображение
-                                galleryHtml = `<img src="${room.image_url}" class="room-img" alt="${room.name}">`;
-                            }
-
-                            roomCard.innerHTML = `
-                                <div class="row g-0">
-                                    <div class="col-md-4">
-                                        ${galleryHtml}
-                                    </div>
-                                    <div class="col-md-8">
-                                        <div class="card-body">
-                                            <h5 class="card-title">${room.name}</h5>
-                                            <p class="card-text">${room.description}</p>
-                                            <div class="d-flex flex-wrap mb-2">
-                                                ${amenitiesHtml}
-                                            </div>
-                                            <p class="card-text">
-                                                <small class="text-muted">Вместимость: ${room.capacity} чел.</small>
-                                            </p>
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <span class="text-primary fw-bold">${priceText}</span>
-                                                <button class="btn btn-sm btn-primary book-room-btn"
-                                                    data-room-id="${room.id}">Забронировать</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-
+                            const roomCard = createRoomCard(room, typeIndex + index);
                             roomsContainer.appendChild(roomCard);
 
-                            // Добавляем в выпадающий список
+                            // Добавляем в select
                             const option = document.createElement('option');
                             option.value = room.id;
                             option.textContent = `${room.name} - ${formatPrice(room.price_per_night)} сум/ночь`;
@@ -375,178 +674,259 @@
                     }
                 });
 
-                // Настраиваем обработчики кнопок бронирования
-                document.querySelectorAll('.book-room-btn').forEach(button => {
-                    button.addEventListener('click', function() {
-                        const roomId = this.getAttribute('data-room-id');
-                        document.getElementById('roomSelect').value = roomId;
-
-                        // Переключение на вкладку бронирования
-                        const bookingTab = document.getElementById('booking-tab');
-                        new bootstrap.Tab(bookingTab).show();
-
-                        // Расчет цены
-                        calculatePrice();
-                    });
-                });
+                // Обработчики для кнопок
+                setupRoomButtons();
 
             } catch (error) {
                 console.error('Ошибка при загрузке номеров:', error);
-                showError('Произошла ошибка при загрузке данных');
+                showNotification('Ошибка при загрузке данных', 'error');
             } finally {
                 loadingElement.style.display = 'none';
             }
         }
 
-        // Функция для расчета цены
+        // Создание карточки номера
+        function createRoomCard(room, animationIndex) {
+            const roomCard = document.createElement('div');
+            roomCard.className = 'room-card animate-fade-in';
+            roomCard.style.animationDelay = `${animationIndex * 0.1}s`;
+
+            let priceText = room.weekend_price && room.weekend_price !== room.price_per_night
+                ? `${formatPrice(room.price_per_night)} сум (ПН-ЧТ) / ${formatPrice(room.weekend_price)} сум (ПТ-ВС)`
+                : `${formatPrice(room.price_per_night)} сум/ночь`;
+
+            const amenitiesHtml = room.amenities.slice(0, 4).map(a =>
+                `<span class="badge-custom badge-amenity">${a}</span>`
+            ).join('');
+
+            const hasVideo = room.video_url ? `<span class="badge-custom badge-special">🎥 Видео-тур</span>` : '';
+
+            let galleryHtml = createGallery(room);
+
+            roomCard.innerHTML = `
+                <div class="row g-0">
+                    <div class="col-md-5">
+                        ${galleryHtml}
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card-body">
+                            <h5 class="card-title d-flex justify-content-between align-items-center">
+                                ${room.name}
+                                ${hasVideo}
+                            </h5>
+                            <p class="card-text">${room.description}</p>
+                            <div class="d-flex flex-wrap mb-2">
+                                ${amenitiesHtml}
+                                ${room.amenities.length > 4 ? `<span class="badge-custom">+${room.amenities.length - 4}</span>` : ''}
+                            </div>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-users"></i> Вместимость: ${room.capacity} чел.
+                                    ${room.meal_included ? ' | <i class="fas fa-utensils"></i> Завтрак включен' : ''}
+                                </small>
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-primary fw-bold">${priceText}</span>
+                                <div>
+                                    ${room.video_url ? `<button class="btn btn-sm btn-outline-primary me-2" onclick="showRoomVideo(${room.id})">
+                                        <i class="fas fa-play"></i> Видео
+                                    </button>` : ''}
+                                    <button class="btn btn-book" data-room-id="${room.id}">
+                                        Забронировать
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return roomCard;
+        }
+
+        // Создание галереи
+        function createGallery(room) {
+            if (!room.photos || room.photos.length === 0) {
+                return `<img src="${room.image_url}" class="room-img" alt="${room.name}">`;
+            }
+
+            const carouselId = `carousel-${room.id}`;
+            let indicatorsHtml = '';
+            let slidesHtml = '';
+
+            // Основное изображение
+            indicatorsHtml += `<button type="button" data-bs-target="#${carouselId}" data-bs-slide-to="0" class="active"></button>`;
+            slidesHtml += `
+                <div class="carousel-item active">
+                    <img src="${room.image_url}" class="d-block w-100 room-img" alt="${room.name}">
+                </div>
+            `;
+
+            // Дополнительные фото (максимум 4 для превью)
+            room.photos.slice(0, 4).forEach((photo, index) => {
+                indicatorsHtml += `<button type="button" data-bs-target="#${carouselId}" data-bs-slide-to="${index + 1}"></button>`;
+                slidesHtml += `
+                    <div class="carousel-item">
+                        <img src="${photo}" class="d-block w-100 room-img" alt="${room.name} - фото ${index + 2}">
+                    </div>
+                `;
+            });
+
+            return `
+                <div id="${carouselId}" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-indicators">
+                        ${indicatorsHtml}
+                    </div>
+                    <div class="carousel-inner">
+                        ${slidesHtml}
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </button>
+                </div>
+            `;
+        }
+
+        // Обработка изменения даты
+        function handleDateChange() {
+            const checkInDate = new Date(this.value);
+            checkInDate.setDate(checkInDate.getDate() + 1);
+            const minCheckOutDate = checkInDate.toISOString().split('T')[0];
+            document.getElementById('checkOutDate').setAttribute('min', minCheckOutDate);
+
+            const currentCheckOutDate = document.getElementById('checkOutDate').value;
+            if (currentCheckOutDate && new Date(currentCheckOutDate) <= new Date(this.value)) {
+                document.getElementById('checkOutDate').value = minCheckOutDate;
+            }
+
+            calculatePrice();
+        }
+
+        // Расчет цены с анимацией
         function calculatePrice() {
             const roomId = document.getElementById('roomSelect').value;
             const checkIn = document.getElementById('checkInDate').value;
             const checkOut = document.getElementById('checkOutDate').value;
             const guests = document.getElementById('guestsNumber').value;
 
-            if (!roomId || !checkIn || !checkOut || !guests) {
+            if (!roomId || !checkIn || !checkOut) {
                 document.getElementById('price-info').style.display = 'none';
                 return;
             }
 
             try {
-                // Находим выбранную комнату
                 const room = roomsData.rooms.find(r => r.id == roomId);
                 if (!room) throw new Error("Номер не найден");
 
-                // Рассчитываем количество ночей
                 const checkInDate = new Date(checkIn);
                 const checkOutDate = new Date(checkOut);
                 const nights = Math.floor((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
 
-                if (nights <= 0) throw new Error("Дата выезда должна быть позже даты заезда");
+                if (nights <= 0) throw new Error("Неверные даты");
 
-                // Проверка на вместимость
+                // Проверка вместимости
                 if (guests > room.capacity) {
-                    showError(`Этот номер вмещает максимум ${room.capacity} человек`);
+                    showNotification(`Этот номер вмещает максимум ${room.capacity} человек`, 'error');
+                    document.getElementById('guestsNumber').value = room.capacity;
                     return;
                 }
 
-                // Рассчитываем стоимость (учитываем будние и выходные дни, если цены отличаются)
-                let totalPrice = 0;
+                // Расчет по дням недели
+                let weekdayNights = 0;
+                let weekendNights = 0;
                 let currentDate = new Date(checkIn);
 
                 while (currentDate < checkOutDate) {
-                    // Проверяем, является ли текущий день выходным (пятница, суббота или воскресенье)
-                    const dayOfWeek = currentDate.getDay(); // 0 - воскресенье, ... 6 - суббота
-                    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
-
-                    if (isWeekend && room.weekend_price && room.weekend_price !== room.price_per_night) {
-                        totalPrice += room.weekend_price;
+                    const dayOfWeek = currentDate.getDay();
+                    if (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0) {
+                        weekendNights++;
                     } else {
-                        totalPrice += room.price_per_night;
+                        weekdayNights++;
                     }
-
-                    // Переходим к следующему дню
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
 
-                // Показываем информацию
+                const weekdayPrice = weekdayNights * room.price_per_night;
+                const weekendPrice = weekendNights * (room.weekend_price || room.price_per_night);
+                const totalPrice = weekdayPrice + weekendPrice;
+
+                // Анимированное обновление цены
                 document.getElementById('totalPrice').textContent = formatPrice(totalPrice);
                 document.getElementById('nightsCount').textContent = nights;
-                document.getElementById('price-info').style.display = 'block';
+                document.getElementById('weekdayNights').textContent = weekdayNights;
+                document.getElementById('weekendNights').textContent = weekendNights;
+
+                const priceInfo = document.getElementById('price-info');
+                priceInfo.style.display = 'block';
+                priceInfo.classList.add('animate-fade-in');
 
             } catch (error) {
-                console.error('Ошибка при расчете цены:', error);
+                console.error('Ошибка расчета:', error);
                 document.getElementById('price-info').style.display = 'none';
             }
         }
 
-        // Функция для бронирования номера
-        function bookRoom() {
-            const roomId = document.getElementById('roomSelect').value;
-            const checkIn = document.getElementById('checkInDate').value;
-            const checkOut = document.getElementById('checkOutDate').value;
-            const guests = document.getElementById('guestsNumber').value;
-            const phone = document.getElementById('phoneNumber').value;
+        // Обработка бронирования
+        async function handleBooking(e) {
+            e.preventDefault();
 
-            if (!roomId || !checkIn || !checkOut || !guests) {
-                showError('Пожалуйста, заполните все обязательные поля');
-                return;
-            }
-
-            // Проверяем, что выбранные даты корректны
-            if (new Date(checkIn) >= new Date(checkOut)) {
-                showError('Дата выезда должна быть позже даты заезда');
-                return;
-            }
-
-            // Отключаем кнопку на время отправки
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Оформление...';
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Оформление...';
 
-            // Получаем Telegram ID пользователя из WebApp
-            const tgApp = window.Telegram?.WebApp;
-            const telegramId = tgApp ? tgApp.initDataUnsafe.user?.id : null;
+            try {
+                const tgApp = window.Telegram?.WebApp;
+                const telegramId = tgApp?.initDataUnsafe?.user?.id;
 
-            if (!telegramId) {
-                showError('Не удалось получить информацию о пользователе Telegram');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Забронировать';
-                return;
-            }
+                if (!telegramId) {
+                    throw new Error('Не удалось получить данные пользователя Telegram');
+                }
 
-            // Формируем данные для запроса
-            const formData = new FormData();
-            formData.append('telegram_id', telegramId);
-            formData.append('room_id', roomId);
-            formData.append('check_in', checkIn);
-            formData.append('check_out', checkOut);
-            formData.append('guests', guests);
-            if (phone) formData.append('phone', phone);
+                const formData = new FormData();
+                formData.append('telegram_id', telegramId);
+                formData.append('room_id', document.getElementById('roomSelect').value);
+                formData.append('check_in', document.getElementById('checkInDate').value);
+                formData.append('check_out', document.getElementById('checkOutDate').value);
+                formData.append('guests', document.getElementById('guestsNumber').value);
+                formData.append('phone', document.getElementById('phoneNumber').value);
 
-            // Отправляем запрос
-            fetch('/api/book', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
+                const response = await fetch('/api/book', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
                 if (data.success) {
-                    // Показываем сообщение об успехе
-                    document.getElementById('modalMessage').innerHTML = `
-                        <div class="alert alert-success mb-0">
-                            <h5 class="alert-heading">Бронирование успешно оформлено!</h5>
-                            <p>Номер бронирования: ${data.booking_id}</p>
-                            <p>Наш администратор свяжется с вами для подтверждения.</p>
-                        </div>
-                    `;
-
-                    // Сбрасываем форму
+                    showNotification('Бронирование успешно оформлено! Наш менеджер свяжется с вами.', 'success');
                     document.getElementById('bookingForm').reset();
                     document.getElementById('price-info').style.display = 'none';
 
-                    // Показываем модальное окно
-                    const messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
-                    messageModal.show();
-
-                    // Передаем данные в Telegram
+                    // Отправляем данные в Telegram
                     if (tgApp) {
                         tgApp.sendData(JSON.stringify({
                             action: 'booking_completed',
                             booking_id: data.booking_id
                         }));
                     }
+
+                    // Закрываем WebApp через 3 секунды
+                    setTimeout(() => {
+                        if (tgApp) tgApp.close();
+                    }, 3000);
                 } else {
-                    showError(data.detail || 'Не удалось оформить бронирование');
+                    throw new Error(data.detail || 'Ошибка бронирования');
                 }
-            })
-            .catch(error => {
-                console.error('Ошибка бронирования:', error);
-                showError('Произошла ошибка при оформлении бронирования');
-            })
-            .finally(() => {
-                // Восстанавливаем кнопку
+
+            } catch (error) {
+                showNotification(error.message, 'error');
+            } finally {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Забронировать';
-            });
+                submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Забронировать';
+            }
         }
 
         // Вспомогательные функции
@@ -554,12 +934,49 @@
             return new Intl.NumberFormat('ru-RU').format(price);
         }
 
-        function showError(message) {
-            document.getElementById('modalMessage').innerHTML = `
-                <div class="alert alert-danger mb-0">${message}</div>
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.className = `notification ${type} show`;
+            notification.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                ${message}
             `;
-            const messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
-            messageModal.show();
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+
+        function setupRoomButtons() {
+            document.querySelectorAll('.btn-book').forEach(button => {
+                button.addEventListener('click', function() {
+                    const roomId = this.getAttribute('data-room-id');
+                    document.getElementById('roomSelect').value = roomId;
+                    new bootstrap.Tab(document.getElementById('booking-tab')).show();
+                    calculatePrice();
+                });
+            });
+        }
+
+        // Функции для видео
+        function playVideo(videoId) {
+            // Здесь можно интегрировать с YouTube API или использовать прямые ссылки
+            console.log('Playing video:', videoId);
+            showNotification('Видео загружается...', 'info');
+        }
+
+        function showRoomVideo(roomId) {
+            const room = roomsData.rooms.find(r => r.id === roomId);
+            if (room && room.video_url) {
+                // Открыть видео в модальном окне или новой вкладке
+                window.open(room.video_url, '_blank');
+            }
+        }
+
+        function open360Tour(tourType) {
+            // Интеграция с 360° турами
+            console.log('Opening 360 tour:', tourType);
+            showNotification('360° тур загружается...', 'info');
         }
     </script>
 </body>

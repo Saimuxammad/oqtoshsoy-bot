@@ -17,6 +17,8 @@ class User(Base):
     last_name = Column(String(255), nullable=True)
     phone = Column(String(20), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    subscribed_to_offers = Column(Boolean, default=True)
+    language = Column(String(10), default='ru')
 
     bookings = relationship("Booking", back_populates="user")
 

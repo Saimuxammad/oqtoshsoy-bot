@@ -11,3 +11,7 @@ python-multipart>=0.0.6
 asgiref>=3.7.2
 aiohttp>=3.8.5
 aiosqlite==0.19.0
+redis==5.0.1
+aiocache==0.12.2
+uvloop==0.19.0  # Ускоряет asyncio в 2-4 раза
+orjson==3.9.10  # Быстрый JSON

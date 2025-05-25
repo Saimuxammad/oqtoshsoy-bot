@@ -2,11 +2,12 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from app.config import WEBAPP_URL, RESORT_PHONE, RESORT_ADMIN_USERNAME
 
 
-# Main keyboard
+# Главная клавиатура с новыми функциями
 def main_keyboard():
     kb = [
         [KeyboardButton(text="🏨 О курорте"), KeyboardButton(text="🛏️ Номера")],
         [KeyboardButton(text="📝 Бронирование", web_app=WebAppInfo(url=WEBAPP_URL))],
+        [KeyboardButton(text="🎥 Виртуальные туры")],  # НОВАЯ КНОПКА
         [KeyboardButton(text="📞 Связь с поддержкой"), KeyboardButton(text="⭐ Отзывы")]
     ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
@@ -54,14 +55,84 @@ def rooms_keyboard(rooms):
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 
-# Room detail keyboard
-def room_detail_keyboard(room_id):
+# Клавиатура для детального просмотра номера с видео
+def room_detail_keyboard(room_id, has_video=False):
     kb = [
         [
             InlineKeyboardButton(text="📝 Забронировать", web_app=WebAppInfo(url=f"{WEBAPP_URL}?room_id={room_id}")),
             InlineKeyboardButton(text="⭐ Отзывы", callback_data=f"reviews_{room_id}")
+        ]
+    ]
+
+    # Добавляем кнопки для медиа если есть
+    if has_video:
+        kb.append([
+            InlineKeyboardButton(text="🎥 Видео-тур", callback_data=f"video_tour_{room_id}"),
+            InlineKeyboardButton(text="📸 Все фото", callback_data=f"all_photos_{room_id}")
+        ])
+
+    kb.append([InlineKeyboardButton(text="🔙 Назад к списку", callback_data="back_to_rooms")])
+    return InlineKeyboardMarkup(inline_keyboard=kb)
+
+# Клавиатура умного помощника
+def assistant_keyboard():
+    kb = [
+        [
+            InlineKeyboardButton(text="🏠 Подобрать номер", callback_data="assist_room_selection"),
+            InlineKeyboardButton(text="📅 Проверить даты", callback_data="assist_check_dates")
         ],
-        [InlineKeyboardButton(text="🔙 Назад к списку", callback_data="back_to_rooms")]
+        [
+            InlineKeyboardButton(text="💰 Узнать цены", callback_data="assist_pricing"),
+            InlineKeyboardButton(text="🚗 Как добраться", callback_data="assist_location")
+        ],
+        [
+            InlineKeyboardButton(text="👨‍👩‍👧‍👦 Отдых с детьми", callback_data="assist_family"),
+            InlineKeyboardButton(text="🎉 Корпоративы", callback_data="assist_corporate")
+        ],
+        [
+            InlineKeyboardButton(text="❓ Частые вопросы", callback_data="assist_faq"),
+            InlineKeyboardButton(text="💬 Написать менеджеру", url=f"https://t.me/{RESORT_ADMIN_USERNAME}")
+        ]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=kb)
+
+
+# Клавиатура для моих бронирований
+def my_bookings_keyboard(bookings):
+    kb = []
+
+    for booking in bookings[:5]:  # Показываем последние 5
+        status_emoji = {
+            "pending": "⏳",
+            "confirmed": "✅",
+            "cancelled": "❌"
+        }.get(booking.status, "📋")
+
+        kb.append([InlineKeyboardButton(
+            text=f"{status_emoji} #{booking.id} | {booking.check_in.strftime('%d.%m')} | {booking.room.name[:20]}",
+            callback_data=f"booking_detail_{booking.id}"
+        )])
+
+    if len(bookings) > 5:
+        kb.append([InlineKeyboardButton(
+            text="📋 Показать все бронирования",
+            web_app=WebAppInfo(url=f"{WEBAPP_URL}/my-bookings")
+        )])
+
+    kb.append([InlineKeyboardButton(
+        text="📝 Новое бронирование",
+        callback_data="new_booking"
+    )])
+
+    return InlineKeyboardMarkup(inline_keyboard=kb)
+# Клавиатура для акций и спецпредложений
+def promotions_keyboard():
+    kb = [
+        [InlineKeyboardButton(text="🎁 Скидка выходного дня", callback_data="promo_weekend")],
+        [InlineKeyboardButton(text="👨‍👩‍👧‍👦 Семейный пакет", callback_data="promo_family")],
+        [InlineKeyboardButton(text="🎂 День рождения в подарок", callback_data="promo_birthday")],
+        [InlineKeyboardButton(text="⭐ Программа лояльности", callback_data="loyalty_program")],
+        [InlineKeyboardButton(text="📢 Подписаться на акции", callback_data="subscribe_promos")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
