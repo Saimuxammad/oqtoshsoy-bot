@@ -3,28 +3,438 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Курорт Oqtoshsoy - Ваш отдых в горах</title>
+    <title>OQTOSHSOY - Зона отдыха</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
         :root {
-            --primary-color: rgba(10, 10, 17, 0.77);
-            --secondary-color: #313337;
-            --accent-color: #e6d874;
-            --bg-light: #f8f9fa;
-            --text-dark: #122232;
+            --primary-dark: #1a1a1a;
+            --primary-gray: #6b737c;
+            --light-gray: #f5f5f5;
+            --white: #ffffff;
+            --accent: #c9a961;
+            --border-light: #e0e0e0;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.16);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            background-color: var(--tg-theme-bg-color, var(--bg-light));
-            color: var(--tg-theme-text-color, var(--text-dark));
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-bottom: 20px;
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--light-gray);
+            color: var(--primary-dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Шапка с логотипом */
+        .header {
+            background: var(--white);
+            padding: 20px 0;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: var(--primary-gray);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo::before {
+            content: '';
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            background: var(--white);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            clip-path: polygon(0 0, 100% 0, 100% 70%, 0 70%);
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: var(--primary-dark);
+        }
+
+        .logo-subtitle {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--primary-gray);
+            letter-spacing: 1px;
+            margin-top: -5px;
+        }
+
+        /* Элегантные табы */
+        .elegant-tabs {
+            background: var(--white);
+            border-radius: 0 0 20px 20px;
+            padding: 0;
+            margin: 0 -15px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-tabs {
+            border: none;
+            display: flex;
+            gap: 0;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--primary-gray);
+            padding: 15px 25px;
+            font-weight: 500;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            background: transparent;
+            position: relative;
+            flex: 1;
+            text-align: center;
+        }
+
+        .nav-tabs .nav-link:hover {
+            color: var(--primary-dark);
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--primary-dark);
+            background: transparent;
+        }
+
+        .nav-tabs .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20%;
+            right: 20%;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 3px 3px 0 0;
+        }
+
+        .nav-tabs .nav-link i {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        /* Карточки номеров */
+        .room-card {
+            background: var(--white);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+
+        .room-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .room-img, .carousel-item img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+        }
+
+        .room-card-body {
+            padding: 20px;
+        }
+
+        .room-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+        }
+
+        .room-description {
+            font-size: 14px;
+            color: var(--primary-gray);
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .room-features {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .feature-badge {
+            padding: 4px 12px;
+            background: var(--light-gray);
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--primary-gray);
+        }
+
+        .room-price {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .price-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        .price-period {
+            font-size: 12px;
+            color: var(--primary-gray);
+            font-weight: 400;
+        }
+
+        /* Элегантные кнопки */
+        .btn-elegant {
+            padding: 10px 24px;
+            border: 2px solid var(--primary-dark);
+            background: var(--primary-dark);
+            color: var(--white);
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-elegant:hover {
+            background: transparent;
+            color: var(--primary-dark);
+        }
+
+        .btn-outline-elegant {
+            padding: 10px 24px;
+            border: 2px solid var(--border-light);
+            background: transparent;
+            color: var(--primary-dark);
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-elegant:hover {
+            border-color: var(--primary-dark);
+            background: var(--primary-dark);
+            color: var(--white);
+        }
+
+        /* Форма бронирования */
+        .booking-form {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .form-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--primary-gray);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-control, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--primary-dark);
+            background: var(--white);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary-dark);
+        }
+
+        /* Расчет стоимости */
+        .price-calculation {
+            background: var(--light-gray);
+            padding: 20px;
+            border-radius: 16px;
+            margin-top: 20px;
+        }
+
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .price-label {
+            color: var(--primary-gray);
+        }
+
+        .price-value {
+            font-weight: 500;
+            color: var(--primary-dark);
+        }
+
+        .total-price {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 2px solid var(--border-light);
+            margin-top: 15px;
+        }
+
+        .total-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        .total-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* Секция преимуществ */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .feature-card {
+            background: var(--white);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            filter: grayscale(100%);
+        }
+
+        .feature-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 5px;
+        }
+
+        .feature-description {
+            font-size: 12px;
+            color: var(--primary-gray);
+        }
+
+        /* Секция информации */
+        .info-section {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 20px;
+        }
+
+        .info-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-icon {
+            color: var(--accent);
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .info-content {
+            flex: 1;
+        }
+
+        .info-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--primary-dark);
+            margin-bottom: 2px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: var(--primary-gray);
         }
 
         /* Анимации */
-        @keyframes fadeInUp {
+        @keyframes fadeIn {
             from {
                 opacity: 0;
                 transform: translateY(20px);
@@ -35,261 +445,42 @@
             }
         }
 
-        .animate-fade-in {
-            animation: fadeInUp 0.5s ease-out;
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
         }
 
-        /* Заголовок с градиентом */
-        .hero-section {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
+        /* Carousel индикаторы */
+        .carousel-indicators {
+            bottom: 10px;
         }
 
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            animation: pulse 4s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-        }
-
-        .hero-title {
-            font-size: 1.8em;
-            font-weight: bold;
-            margin-bottom: 10px;
-            z-index: 1;
-            position: relative;
-        }
-
-        .hero-subtitle {
-            font-size: 1.1em;
-            opacity: 0.9;
-            z-index: 1;
-            position: relative;
-        }
-
-        /* Улучшенные табы */
-        .nav-tabs {
-            border: none;
-            background: white;
-            border-radius: 15px;
-            padding: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .nav-tabs .nav-link {
-            border: none;
-            color: var(--text-dark);
-            padding: 10px 20px;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .nav-tabs .nav-link.active {
-            background: var(--primary-color);
-            color: white;
-            box-shadow: 0 4px 15px rgba(44, 95, 45, 0.3);
-        }
-
-        .nav-tabs .nav-link:hover:not(.active) {
-            background: rgba(44, 95, 45, 0.1);
-        }
-
-        /* Карточки номеров */
-        .room-card {
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            background-color: white;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .room-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-        }
-
-        .room-img, .carousel-item img {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-        }
-
-        /* Видео плеер */
-        .video-container {
-            position: relative;
-            width: 100%;
-            padding-bottom: 56.25%;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .video-container iframe, .video-container video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .play-button {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 70px;
-            height: 70px;
-            background: rgba(255,255,255,0.9);
+        .carousel-indicators button {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-
-        .play-button:hover {
-            background: white;
-            transform: translate(-50%, -50%) scale(1.1);
-        }
-
-        .play-button i {
-            font-size: 30px;
-            color: var(--primary-color);
-            margin-left: 5px;
-        }
-
-        /* Бейджи и теги */
-        .badge-custom {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-weight: 500;
-            font-size: 0.85em;
-            margin-right: 5px;
-            margin-bottom: 5px;
-            display: inline-block;
-        }
-
-        .badge-amenity {
-            background-color: rgba(151, 188, 98, 0.2);
-            color: var(--primary-color);
-        }
-
-        .badge-special {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
-            color: white;
-        }
-
-        /* Форма бронирования */
-        .booking-form {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
-
-        .form-control, .form-select {
-            border-radius: 10px;
-            border: 2px solid #e0e0e0;
-            padding: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(44, 95, 45, 0.25);
-        }
-
-        /* Кнопки */
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background-color: rgba(255,255,255,0.5);
             border: none;
-            border-radius: 10px;
-            padding: 12px 30px;
-            font-weight: 600;
-            transition: all 0.3s ease;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(44, 95, 45, 0.4);
-        }
-
-        .btn-book {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-book:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
-        }
-
-        /* Секция преимуществ */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .feature-card {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-        }
-
-        .feature-icon {
-            font-size: 2.5em;
-            color: var(--primary-color);
-            margin-bottom: 10px;
+        .carousel-indicators button.active {
+            background-color: var(--white);
         }
 
         /* Уведомления */
         .notification {
             position: fixed;
-            top: 20px;
+            bottom: 20px;
             right: 20px;
-            background: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-            z-index: 1000;
+            background: var(--white);
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
             transform: translateX(400px);
             transition: transform 0.3s ease;
+            z-index: 1000;
         }
 
         .notification.show {
@@ -304,135 +495,226 @@
             border-left: 4px solid #f44336;
         }
 
-        /* Загрузчик */
-        .skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
+        .notification-icon {
+            font-size: 20px;
         }
 
-        @keyframes loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+        .notification.success .notification-icon {
+            color: #4caf50;
+        }
+
+        .notification.error .notification-icon {
+            color: #f44336;
+        }
+
+        .notification-text {
+            font-size: 14px;
+            color: var(--primary-dark);
         }
 
         /* Адаптивность */
         @media (max-width: 768px) {
-            .hero-title { font-size: 1.5em; }
-            .hero-subtitle { font-size: 1em; }
-            .room-img, .carousel-item img { height: 200px; }
-            .features-grid { grid-template-columns: repeat(2, 1fr); }
+            .logo-text {
+                font-size: 20px;
+            }
+
+            .nav-tabs .nav-link {
+                padding: 12px 10px;
+                font-size: 12px;
+            }
+
+            .nav-tabs .nav-link i {
+                display: none;
+            }
+
+            .room-card .row {
+                flex-direction: column;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Загрузчик */
+        .loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 0;
+        }
+
+        .loader-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-light);
+            border-top: 3px solid var(--primary-dark);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Video overlay */
+        .video-overlay {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .video-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .video-overlay:hover::after {
+            background: rgba(0,0,0,0.5);
+        }
+
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .play-button:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            background: var(--white);
+        }
+
+        .play-button i {
+            font-size: 24px;
+            color: var(--primary-dark);
+            margin-left: 3px;
         }
     </style>
 </head>
 <body>
-    <div class="container mt-3">
-        <!-- Hero секция -->
-        <div class="hero-section animate-fade-in">
-            <h1 class="hero-title">🏔️ Курорт Oqtoshsoy</h1>
-            <p class="hero-subtitle">Ваш идеальный отдых в горах Узбекистана</p>
+    <!-- Шапка с логотипом -->
+    <header class="header">
+        <div class="container">
+            <div class="logo-container">
+                <div class="logo"></div>
+                <div>
+                    <div class="logo-text">OQTOSHSOY</div>
+                    <div class="logo-subtitle">ЗОНА ОТДЫХА</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container" style="padding-top: 0;">
+        <!-- Элегантные табы -->
+        <div class="elegant-tabs">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="rooms-tab" data-bs-toggle="tab" data-bs-target="#rooms" type="button">
+                        <i class="fas fa-bed"></i> Номера
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking" type="button">
+                        <i class="fas fa-calendar-check"></i> Бронь
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tours-tab" data-bs-toggle="tab" data-bs-target="#tours" type="button">
+                        <i class="fas fa-video"></i> Туры
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button">
+                        <i class="fas fa-info-circle"></i> О нас
+                    </button>
+                </li>
+            </ul>
         </div>
 
-        <!-- Навигация -->
-        <ul class="nav nav-tabs" id="myTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="rooms-tab" data-bs-toggle="tab" data-bs-target="#rooms" type="button">
-                    <i class="fas fa-bed"></i> Номера
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking" type="button">
-                    <i class="fas fa-calendar-check"></i> Бронирование
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="tours-tab" data-bs-toggle="tab" data-bs-target="#tours" type="button">
-                    <i class="fas fa-video"></i> Видео-туры
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button">
-                    <i class="fas fa-info-circle"></i> О курорте
-                </button>
-            </li>
-        </ul>
-
-        <div class="tab-content" id="myTabContent">
+        <div class="tab-content" id="myTabContent" style="padding-top: 20px;">
             <!-- Вкладка с номерами -->
             <div class="tab-pane fade show active" id="rooms" role="tabpanel">
-                <div id="loading-rooms" class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Загрузка...</span>
-                    </div>
-                    <p class="mt-2">Загружаем номера...</p>
+                <div id="loading-rooms" class="loader">
+                    <div class="loader-spinner"></div>
                 </div>
                 <div id="roomsContainer"></div>
             </div>
 
             <!-- Вкладка бронирования -->
             <div class="tab-pane fade" id="booking" role="tabpanel">
-                <div class="booking-form animate-fade-in">
-                    <h3 class="mb-4"><i class="fas fa-calendar-alt"></i> Забронировать номер</h3>
+                <div class="booking-form fade-in">
+                    <h3 class="form-title">Оформление бронирования</h3>
                     <form id="bookingForm">
-                        <div class="mb-3">
-                            <label for="roomSelect" class="form-label">
-                                <i class="fas fa-door-open"></i> Выберите номер
-                            </label>
+                        <div class="form-group">
+                            <label for="roomSelect" class="form-label">Выберите номер</label>
                             <select class="form-select" id="roomSelect" required>
-                                <option value="" selected disabled>Выберите номер из списка</option>
+                                <option value="" selected disabled>Выберите из списка</option>
                             </select>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="checkInDate" class="form-label">
-                                    <i class="fas fa-sign-in-alt"></i> Дата заезда
-                                </label>
+                            <div class="col-md-6 form-group">
+                                <label for="checkInDate" class="form-label">Дата заезда</label>
                                 <input type="date" class="form-control" id="checkInDate" required>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="checkOutDate" class="form-label">
-                                    <i class="fas fa-sign-out-alt"></i> Дата выезда
-                                </label>
+                            <div class="col-md-6 form-group">
+                                <label for="checkOutDate" class="form-label">Дата выезда</label>
                                 <input type="date" class="form-control" id="checkOutDate" required>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="guestsNumber" class="form-label">
-                                    <i class="fas fa-users"></i> Количество гостей
-                                </label>
+                            <div class="col-md-6 form-group">
+                                <label for="guestsNumber" class="form-label">Количество гостей</label>
                                 <input type="number" class="form-control" id="guestsNumber" min="1" value="1" required>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="phoneNumber" class="form-label">
-                                    <i class="fas fa-phone"></i> Контактный телефон
-                                </label>
+                            <div class="col-md-6 form-group">
+                                <label for="phoneNumber" class="form-label">Контактный телефон</label>
                                 <input type="tel" class="form-control" id="phoneNumber" placeholder="+998 __ ___ __ __">
                             </div>
                         </div>
 
-                        <div class="mb-3" id="price-info" style="display: none;">
-                            <div class="alert alert-info">
-                                <h5><i class="fas fa-calculator"></i> Расчет стоимости:</h5>
-                                <div class="row">
-                                    <div class="col-6">
-                                        <p class="mb-1">Количество ночей: <strong id="nightsCount">0</strong></p>
-                                        <p class="mb-1">Будние дни: <strong id="weekdayNights">0</strong></p>
-                                        <p class="mb-0">Выходные: <strong id="weekendNights">0</strong></p>
-                                    </div>
-                                    <div class="col-6 text-end">
-                                        <p class="mb-0" style="font-size: 1.5em;">
-                                            <strong id="totalPrice">0</strong> сум
-                                        </p>
-                                    </div>
-                                </div>
+                        <div class="price-calculation" id="price-info" style="display: none;">
+                            <div class="price-row">
+                                <span class="price-label">Количество ночей:</span>
+                                <span class="price-value" id="nightsCount">0</span>
+                            </div>
+                            <div class="price-row">
+                                <span class="price-label">Будние дни:</span>
+                                <span class="price-value" id="weekdayNights">0</span>
+                            </div>
+                            <div class="price-row">
+                                <span class="price-label">Выходные дни:</span>
+                                <span class="price-value" id="weekendNights">0</span>
+                            </div>
+                            <div class="total-price">
+                                <span class="total-label">Итого к оплате:</span>
+                                <span class="total-value"><span id="totalPrice">0</span> сум</span>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100" id="submitBtn">
-                            <i class="fas fa-check-circle"></i> Забронировать
+                        <button type="submit" class="btn-elegant w-100 mt-4" id="submitBtn">
+                            Забронировать
                         </button>
                     </form>
                 </div>
@@ -440,70 +722,62 @@
 
             <!-- Вкладка видео-туров -->
             <div class="tab-pane fade" id="tours" role="tabpanel">
-                <div class="animate-fade-in">
-                    <h3 class="mb-4"><i class="fas fa-video"></i> Виртуальные туры</h3>
+                <div class="fade-in">
+                    <div class="info-section mb-4">
+                        <h3 class="info-title">Виртуальные туры</h3>
 
-                    <!-- Общее видео курорта -->
-                    <div class="mb-4">
-                        <h5>Обзор курорта Oqtoshsoy</h5>
-                        <div class="video-container">
-                            <div class="play-button" onclick="playVideo('resort-overview')">
-                                <i class="fas fa-play"></i>
-                            </div>
-                            <img src="https://i.imgur.com/ZXBtVw7.jpg" class="w-100" alt="Обзор курорта">
-                        </div>
-                    </div>
-
-                    <!-- Видео-туры по зонам -->
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="video-container">
-                                    <div class="play-button" onclick="playVideo('pool-tour')">
-                                        <i class="fas fa-play"></i>
-                                    </div>
-                                    <img src="https://i.imgur.com/nf1aE8m.jpg" class="w-100" alt="Бассейн">
-                                </div>
-                                <div class="card-body">
-                                    <h6 class="card-title">Бассейн и зона отдыха</h6>
-                                    <p class="card-text">Открытый и закрытый бассейны</p>
+                        <!-- Общее видео курорта -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">Обзор курорта Oqtoshsoy</h5>
+                            <div class="video-overlay" onclick="playVideo('resort-overview')">
+                                <img src="https://i.imgur.com/ZXBtVw7.jpg" class="w-100" style="border-radius: 12px;" alt="Обзор курорта">
+                                <div class="play-button">
+                                    <i class="fas fa-play"></i>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="video-container">
-                                    <div class="play-button" onclick="playVideo('restaurant-tour')">
+
+                        <!-- Видео-туры по зонам -->
+                        <div class="row mt-4">
+                            <div class="col-md-6 mb-3">
+                                <div class="video-overlay" onclick="playVideo('pool-tour')">
+                                    <img src="https://i.imgur.com/nf1aE8m.jpg" class="w-100" style="border-radius: 12px;" alt="Бассейн">
+                                    <div class="play-button">
                                         <i class="fas fa-play"></i>
                                     </div>
-                                    <img src="https://i.imgur.com/Ecz64bK.jpg" class="w-100" alt="Ресторан">
                                 </div>
-                                <div class="card-body">
-                                    <h6 class="card-title">Ресторан и кухня</h6>
-                                    <p class="card-text">Национальная и европейская кухня</p>
+                                <h6 class="mt-2">Бассейн и зона отдыха</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="video-overlay" onclick="playVideo('restaurant-tour')">
+                                    <img src="https://i.imgur.com/Ecz64bK.jpg" class="w-100" style="border-radius: 12px;" alt="Ресторан">
+                                    <div class="play-button">
+                                        <i class="fas fa-play"></i>
+                                    </div>
                                 </div>
+                                <h6 class="mt-2">Ресторан и кухня</h6>
                             </div>
                         </div>
                     </div>
 
                     <!-- 360° туры -->
-                    <h5 class="mt-4 mb-3"><i class="fas fa-street-view"></i> 360° туры</h5>
+                    <h5 class="mb-3">360° туры</h5>
                     <div class="features-grid">
                         <div class="feature-card" onclick="open360Tour('territory')">
                             <div class="feature-icon">🏞️</div>
-                            <h6>Территория</h6>
+                            <div class="feature-title">Территория</div>
                         </div>
                         <div class="feature-card" onclick="open360Tour('rooms')">
                             <div class="feature-icon">🛏️</div>
-                            <h6>Номера</h6>
+                            <div class="feature-title">Номера</div>
                         </div>
                         <div class="feature-card" onclick="open360Tour('restaurant')">
                             <div class="feature-icon">🍽️</div>
-                            <h6>Ресторан</h6>
+                            <div class="feature-title">Ресторан</div>
                         </div>
                         <div class="feature-card" onclick="open360Tour('spa')">
                             <div class="feature-icon">💆</div>
-                            <h6>SPA-центр</h6>
+                            <div class="feature-title">SPA-центр</div>
                         </div>
                     </div>
                 </div>
@@ -511,61 +785,79 @@
 
             <!-- Вкладка о курорте -->
             <div class="tab-pane fade" id="about" role="tabpanel">
-                <div class="animate-fade-in">
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <h3 class="card-title"><i class="fas fa-mountain"></i> О курорте Oqtoshsoy</h3>
-                            <p class="card-text">Наш курорт расположен в живописном горном ущелье, в 120 км от города Ташкент.</p>
+                <div class="fade-in">
+                    <div class="info-section">
+                        <h3 class="info-title">О курорте Oqtoshsoy</h3>
+                        <p style="color: var(--primary-gray); margin-bottom: 20px;">
+                            Наш курорт расположен в живописном горном ущелье, в 120 км от города Ташкент.
+                            Современный комплекс для комфортного отдыха в окружении природы.
+                        </p>
 
-                            <div class="row mt-4">
-                                <div class="col-md-6">
-                                    <h5><i class="fas fa-map-marker-alt"></i> Расположение</h5>
-                                    <p>Ташкентская область, Бостанлыкский район</p>
-                                    <p><strong>Высота:</strong> 1200 м над уровнем моря</p>
-                                    <p><strong>Климат:</strong> Горный, умеренный</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5><i class="fas fa-phone-alt"></i> Контакты</h5>
-                                    <p><strong>Телефон:</strong> +998 90 096 50 55</p>
-                                    <p><strong>Telegram:</strong> @Oqtosh_Soy</p>
-                                    <p><strong>Режим работы:</strong> Круглый год</p>
-                                </div>
+                        <div class="info-item">
+                            <i class="fas fa-map-marker-alt info-icon"></i>
+                            <div class="info-content">
+                                <div class="info-label">Расположение</div>
+                                <div class="info-value">Ташкентская область, Бостанлыкский район</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <i class="fas fa-mountain info-icon"></i>
+                            <div class="info-content">
+                                <div class="info-label">Высота</div>
+                                <div class="info-value">1200 м над уровнем моря</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <i class="fas fa-phone-alt info-icon"></i>
+                            <div class="info-content">
+                                <div class="info-label">Телефон</div>
+                                <div class="info-value">+998 90 096 50 55</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <i class="fab fa-telegram info-icon"></i>
+                            <div class="info-content">
+                                <div class="info-label">Telegram</div>
+                                <div class="info-value">@Oqtosh_Soy</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Преимущества -->
-                    <h5 class="mb-3"><i class="fas fa-star"></i> Наши преимущества</h5>
+                    <h5 class="mb-3 mt-4">Наши преимущества</h5>
                     <div class="features-grid">
                         <div class="feature-card">
                             <div class="feature-icon">🏊</div>
-                            <h6>Бассейны</h6>
-                            <small>Открытый и закрытый</small>
+                            <div class="feature-title">Бассейны</div>
+                            <div class="feature-description">Открытый и закрытый</div>
                         </div>
                         <div class="feature-card">
                             <div class="feature-icon">🍽️</div>
-                            <h6>Ресторан</h6>
-                            <small>Национальная кухня</small>
+                            <div class="feature-title">Ресторан</div>
+                            <div class="feature-description">Национальная кухня</div>
                         </div>
                         <div class="feature-card">
                             <div class="feature-icon">💆</div>
-                            <h6>SPA-центр</h6>
-                            <small>Массаж и сауна</small>
+                            <div class="feature-title">SPA-центр</div>
+                            <div class="feature-description">Массаж и сауна</div>
                         </div>
                         <div class="feature-card">
                             <div class="feature-icon">👶</div>
-                            <h6>Для детей</h6>
-                            <small>Площадка и аниматоры</small>
+                            <div class="feature-title">Для детей</div>
+                            <div class="feature-description">Площадка и аниматоры</div>
                         </div>
                         <div class="feature-card">
                             <div class="feature-icon">🚗</div>
-                            <h6>Парковка</h6>
-                            <small>Бесплатная охраняемая</small>
+                            <div class="feature-title">Парковка</div>
+                            <div class="feature-description">Бесплатная охраняемая</div>
                         </div>
                         <div class="feature-card">
                             <div class="feature-icon">📶</div>
-                            <h6>Wi-Fi</h6>
-                            <small>На всей территории</small>
+                            <div class="feature-title">Wi-Fi</div>
+                            <div class="feature-description">На всей территории</div>
                         </div>
                     </div>
                 </div>
@@ -574,13 +866,16 @@
     </div>
 
     <!-- Уведомления -->
-    <div id="notification" class="notification"></div>
+    <div id="notification" class="notification">
+        <i class="notification-icon"></i>
+        <span class="notification-text"></span>
+    </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Обновленные данные о номерах с видео
+        // Обновленные данные о номерах
         const roomsData = {
             "status": "success",
             "rooms": [
@@ -603,10 +898,6 @@
             if (tgApp) {
                 tgApp.expand();
                 tgApp.ready();
-
-                // Применяем тему Telegram
-                document.documentElement.style.setProperty('--tg-theme-bg-color', tgApp.themeParams.bg_color || '#f5f5f5');
-                document.documentElement.style.setProperty('--tg-theme-text-color', tgApp.themeParams.text_color || '#222');
             }
 
             // Загружаем номера
@@ -625,7 +916,7 @@
             document.getElementById('bookingForm').addEventListener('submit', handleBooking);
         });
 
-        // Загрузка номеров с анимацией
+        // Загрузка номеров
         function loadRooms() {
             const loadingElement = document.getElementById('loading-rooms');
             const roomsContainer = document.getElementById('roomsContainer');
@@ -633,36 +924,34 @@
 
             try {
                 const roomTypes = {
-                    'standard': { name: 'Стандартные номера', icon: '🏠' },
-                    'luxury': { name: 'Люкс номера', icon: '🏡' },
-                    'vip': { name: 'VIP номера', icon: '🏰' },
-                    'apartment': { name: 'Апартаменты', icon: '🏢' },
-                    'cottage': { name: 'Коттеджи', icon: '🏘️' },
-                    'president': { name: 'Президентские апартаменты', icon: '👑' },
-                    'tapchan': { name: 'Тапчаны', icon: '🎪' }
+                    'tapchan': { name: 'Тапчаны', order: 1 },
+                    'standard': { name: 'Стандартные номера', order: 2 },
+                    'luxury': { name: 'Люкс номера', order: 3 },
+                    'vip': { name: 'VIP номера', order: 4 },
+                    'apartment': { name: 'Апартаменты', order: 5 },
+                    'cottage': { name: 'Коттеджи', order: 6 },
+                    'president': { name: 'Президентские апартаменты', order: 7 }
                 };
 
                 roomsContainer.innerHTML = '';
-                roomSelect.innerHTML = '<option value="" selected disabled>Выберите номер из списка</option>';
+                roomSelect.innerHTML = '<option value="" selected disabled>Выберите из списка</option>';
 
-                Object.keys(roomTypes).forEach((type, typeIndex) => {
+                // Сортируем типы по порядку
+                const sortedTypes = Object.keys(roomTypes).sort((a, b) => roomTypes[a].order - roomTypes[b].order);
+
+                sortedTypes.forEach((type) => {
                     const roomsOfType = roomsData.rooms.filter(room => room.room_type === type);
 
                     if (roomsOfType.length > 0) {
-                        // Заголовок секции с анимацией
-                        const sectionHeader = document.createElement('div');
-                        sectionHeader.className = 'animate-fade-in';
-                        sectionHeader.style.animationDelay = `${typeIndex * 0.1}s`;
-                        sectionHeader.innerHTML = `
-                            <h4 class="mt-4 mb-3">
-                                ${roomTypes[type].icon} ${roomTypes[type].name}
-                            </h4>
-                        `;
+                        // Заголовок секции
+                        const sectionHeader = document.createElement('h5');
+                        sectionHeader.className = 'mb-3 mt-4';
+                        sectionHeader.textContent = roomTypes[type].name;
                         roomsContainer.appendChild(sectionHeader);
 
-                        roomsOfType.forEach((room, index) => {
+                        roomsOfType.forEach((room) => {
                             // Создаем карточку номера
-                            const roomCard = createRoomCard(room, typeIndex + index);
+                            const roomCard = createRoomCard(room);
                             roomsContainer.appendChild(roomCard);
 
                             // Добавляем в select
@@ -686,20 +975,26 @@
         }
 
         // Создание карточки номера
-        function createRoomCard(room, animationIndex) {
+        function createRoomCard(room) {
             const roomCard = document.createElement('div');
-            roomCard.className = 'room-card animate-fade-in';
-            roomCard.style.animationDelay = `${animationIndex * 0.1}s`;
+            roomCard.className = 'room-card fade-in';
 
-            let priceText = room.weekend_price && room.weekend_price !== room.price_per_night
-                ? `${formatPrice(room.price_per_night)} сум (ПН-ЧТ) / ${formatPrice(room.weekend_price)} сум (ПТ-ВС)`
-                : `${formatPrice(room.price_per_night)} сум/ночь`;
+            let priceText = '';
+            if (room.weekend_price && room.weekend_price !== room.price_per_night) {
+                priceText = `
+                    <div class="price-text">${formatPrice(room.price_per_night)} сум</div>
+                    <div class="price-period">Будни / ${formatPrice(room.weekend_price)} сум выходные</div>
+                `;
+            } else {
+                priceText = `
+                    <div class="price-text">${formatPrice(room.price_per_night)} сум</div>
+                    <div class="price-period">за ночь</div>
+                `;
+            }
 
-            const amenitiesHtml = room.amenities.slice(0, 4).map(a =>
-                `<span class="badge-custom badge-amenity">${a}</span>`
+            const amenitiesHtml = room.amenities.slice(0, 3).map(a =>
+                `<span class="feature-badge">${a}</span>`
             ).join('');
-
-            const hasVideo = room.video_url ? `<span class="badge-custom badge-special">🎥 Видео-тур</span>` : '';
 
             let galleryHtml = createGallery(room);
 
@@ -709,32 +1004,31 @@
                         ${galleryHtml}
                     </div>
                     <div class="col-md-7">
-                        <div class="card-body">
-                            <h5 class="card-title d-flex justify-content-between align-items-center">
-                                ${room.name}
-                                ${hasVideo}
-                            </h5>
-                            <p class="card-text">${room.description}</p>
-                            <div class="d-flex flex-wrap mb-2">
+                        <div class="room-card-body">
+                            <h5 class="room-title">${room.name}</h5>
+                            <p class="room-description">${room.description}</p>
+                            <div class="room-features">
                                 ${amenitiesHtml}
-                                ${room.amenities.length > 4 ? `<span class="badge-custom">+${room.amenities.length - 4}</span>` : ''}
+                                ${room.amenities.length > 3 ? `<span class="feature-badge">+${room.amenities.length - 3}</span>` : ''}
                             </div>
-                            <p class="card-text">
-                                <small class="text-muted">
-                                    <i class="fas fa-users"></i> Вместимость: ${room.capacity} чел.
-                                    ${room.meal_included ? ' | <i class="fas fa-utensils"></i> Завтрак включен' : ''}
-                                </small>
-                            </p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-primary fw-bold">${priceText}</span>
+                            <div class="d-flex align-items-center justify-content-between">
                                 <div>
-                                    ${room.video_url ? `<button class="btn btn-sm btn-outline-primary me-2" onclick="showRoomVideo(${room.id})">
-                                        <i class="fas fa-play"></i> Видео
-                                    </button>` : ''}
-                                    <button class="btn btn-book" data-room-id="${room.id}">
-                                        Забронировать
-                                    </button>
+                                    <small class="text-muted">
+                                        <i class="fas fa-users me-1"></i> до ${room.capacity} человек
+                                        ${room.meal_included ? ' • Завтрак включен' : ''}
+                                    </small>
                                 </div>
+                                ${room.video_url ? `<button class="btn-outline-elegant btn-sm" onclick="showRoomVideo(${room.id})">
+                                    <i class="fas fa-play me-1"></i> Видео
+                                </button>` : ''}
+                            </div>
+                            <div class="room-price">
+                                <div>
+                                    ${priceText}
+                                </div>
+                                <button class="btn-elegant" data-room-id="${room.id}">
+                                    Забронировать
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -762,7 +1056,7 @@
                 </div>
             `;
 
-            // Дополнительные фото (максимум 4 для превью)
+            // Дополнительные фото
             room.photos.slice(0, 4).forEach((photo, index) => {
                 indicatorsHtml += `<button type="button" data-bs-target="#${carouselId}" data-bs-slide-to="${index + 1}"></button>`;
                 slidesHtml += `
@@ -805,7 +1099,7 @@
             calculatePrice();
         }
 
-        // Расчет цены с анимацией
+        // Расчет цены
         function calculatePrice() {
             const roomId = document.getElementById('roomSelect').value;
             const checkIn = document.getElementById('checkInDate').value;
@@ -853,7 +1147,7 @@
                 const weekendPrice = weekendNights * (room.weekend_price || room.price_per_night);
                 const totalPrice = weekdayPrice + weekendPrice;
 
-                // Анимированное обновление цены
+                // Обновление цены
                 document.getElementById('totalPrice').textContent = formatPrice(totalPrice);
                 document.getElementById('nightsCount').textContent = nights;
                 document.getElementById('weekdayNights').textContent = weekdayNights;
@@ -861,7 +1155,7 @@
 
                 const priceInfo = document.getElementById('price-info');
                 priceInfo.style.display = 'block';
-                priceInfo.classList.add('animate-fade-in');
+                priceInfo.classList.add('fade-in');
 
             } catch (error) {
                 console.error('Ошибка расчета:', error);
@@ -925,7 +1219,7 @@
                 showNotification(error.message, 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Забронировать';
+                submitBtn.textContent = 'Забронировать';
             }
         }
 
@@ -936,11 +1230,12 @@
 
         function showNotification(message, type = 'info') {
             const notification = document.getElementById('notification');
+            const icon = notification.querySelector('.notification-icon');
+            const text = notification.querySelector('.notification-text');
+
             notification.className = `notification ${type} show`;
-            notification.innerHTML = `
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-                ${message}
-            `;
+            icon.className = `notification-icon fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`;
+            text.textContent = message;
 
             setTimeout(() => {
                 notification.classList.remove('show');
@@ -948,7 +1243,7 @@
         }
 
         function setupRoomButtons() {
-            document.querySelectorAll('.btn-book').forEach(button => {
+            document.querySelectorAll('.btn-elegant[data-room-id]').forEach(button => {
                 button.addEventListener('click', function() {
                     const roomId = this.getAttribute('data-room-id');
                     document.getElementById('roomSelect').value = roomId;
@@ -960,7 +1255,6 @@
 
         // Функции для видео
         function playVideo(videoId) {
-            // Здесь можно интегрировать с YouTube API или использовать прямые ссылки
             console.log('Playing video:', videoId);
             showNotification('Видео загружается...', 'info');
         }
@@ -968,13 +1262,11 @@
         function showRoomVideo(roomId) {
             const room = roomsData.rooms.find(r => r.id === roomId);
             if (room && room.video_url) {
-                // Открыть видео в модальном окне или новой вкладке
                 window.open(room.video_url, '_blank');
             }
         }
 
         function open360Tour(tourType) {
-            // Интеграция с 360° турами
             console.log('Opening 360 tour:', tourType);
             showNotification('360° тур загружается...', 'info');
         }
