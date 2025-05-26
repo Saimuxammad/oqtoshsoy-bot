@@ -1,21 +1,25 @@
 from aiogram import F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, WebAppInfo
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
-from aiogram.types import InputMediaPhoto  # Для отправки альбома фото
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import calendar
 from datetime import datetime, timedelta
+import json
+import logging
 
 from app.bot.singleton_router import get_router
 from app.bot.keyboards import main_keyboard, rooms_keyboard, room_detail_keyboard, support_keyboard
 from app.database.crud import (
     get_user_by_telegram_id, create_user, get_all_rooms,
-    get_room, get_room_reviews, get_or_create_user
+    get_room, get_room_reviews, get_or_create_user, check_room_availability
 )
 from app.database.models import User
-from app.config import RESORT_PHONE, RESORT_ADMIN_USERNAME, RESORT_NAME, RESORT_LOCATION, RESORT_ALTITUDE
+from app.config import RESORT_PHONE, RESORT_ADMIN_USERNAME, RESORT_NAME, RESORT_LOCATION, RESORT_ALTITUDE, WEBAPP_URL
+
+# Настройка логирования
+logger = logging.getLogger(__name__)
 
 # Get the singleton router instance
 router = get_router()
@@ -24,6 +28,8 @@ router = get_router()
 # Handler for /start command
 @router.message(Command("start"))
 async def cmd_start(message: Message, session: AsyncSession):
+    logger.info(f"Start command from user {message.from_user.id}")
+
     # Check if user exists in the database or create a new one
     user = await get_or_create_user(
         session,
@@ -45,6 +51,8 @@ async def cmd_start(message: Message, session: AsyncSession):
 # Handler for "About Resort" button
 @router.message(F.text == "🏨 О курорте")
 async def about_resort(message: Message):
+    logger.info(f"About resort from user {message.from_user.id}")
+
     await message.answer(
         f"🏨 Курорт «{RESORT_NAME}»\n\n"
         f"Наш курорт расположен в живописном горном ущелье, в 120 км от города Ташкент.\n\n"
@@ -65,6 +73,8 @@ async def about_resort(message: Message):
 # Handler for "Rooms" button
 @router.message(F.text == "🛏️ Номера")
 async def show_rooms(message: Message, session: AsyncSession):
+    logger.info(f"Show rooms from user {message.from_user.id}")
+
     # Get rooms with await
     rooms = await get_all_rooms(session)
 
@@ -78,6 +88,8 @@ async def show_rooms(message: Message, session: AsyncSession):
 # Handler для групп номеров
 @router.callback_query(lambda c: c.data and c.data.startswith("room_type_"))
 async def room_type_info(callback: CallbackQuery, session: AsyncSession):
+    logger.info(f"Room type info: {callback.data}")
+
     room_type = callback.data.split("_")[2]
 
     # Описания для разных типов номеров
@@ -102,10 +114,17 @@ async def room_type_info(callback: CallbackQuery, session: AsyncSession):
     await callback.answer()
 
 
-# Handler for room selection
-@router.callback_query(lambda c: c.data and c.data.startswith("room_"))
+# Handler for room selection - ИСПРАВЛЕННЫЙ
+@router.callback_query(lambda c: c.data and c.data.startswith("room_") and len(c.data.split("_")) == 2)
 async def room_details(callback: CallbackQuery, session: AsyncSession):
-    room_id = int(callback.data.split("_")[1])
+    logger.info(f"Room details: {callback.data}")
+
+    try:
+        room_id = int(callback.data.split("_")[1])
+    except (ValueError, IndexError):
+        await callback.answer("Ошибка обработки запроса")
+        return
+
     room = await get_room(session, room_id)
 
     if not room:
@@ -125,24 +144,26 @@ async def room_details(callback: CallbackQuery, session: AsyncSession):
 
     room_type_ru = room_type_names.get(room.room_type, room.room_type)
 
-    # Формат цены: добавляем разные цены для будних и выходных
-    price_text = f"{room.price_per_night}сум"
+    # Формат цены
+    if hasattr(room, "weekend_price") and room.weekend_price and room.weekend_price != room.price_per_night:
+        price_text = f"{room.price_per_night:,.0f} сум (ПН-ЧТ) / {room.weekend_price:,.0f} сум (ПТ-ВС)"
+    else:
+        price_text = f"{room.price_per_night:,.0f} сум"
 
-    # Добавляем цену выходного дня, если она есть
-    if hasattr(room, "weekend_price") and room.weekend_price:
-        price_text = f"{room.price_per_night}сум (ПН-ЧТ) / {room.weekend_price}сум (ПТ-ВС)"
-
-    # Определяем, что включено в номер
+    # Определяем, что включено
     included_text = ""
-    if room.room_type != "tapchan":  # Для всех кроме тапчанов
+    if room.room_type != "tapchan":
         included_text = "Включено:\n"
         if hasattr(room, "with_breakfast") and room.with_breakfast:
             included_text += "- Завтрак\n"
         included_text += "- 1 час детская площадка\n"
-    else:  # Для тапчанов
+    else:
         included_text = "Доступно дополнительно:\n- Мангал (по запросу)\n"
 
-    # Create room description text без специальных символов Markdown
+    # Проверяем наличие видео
+    has_video = hasattr(room, 'video_url') and room.video_url is not None
+
+    # Создаем текст описания
     text = (
         f"🛏️ {room.name}\n\n"
         f"Тип: {room_type_ru}\n"
@@ -155,19 +176,19 @@ async def room_details(callback: CallbackQuery, session: AsyncSession):
         f"Для бронирования нажмите кнопку ниже."
     )
 
-    # Send photo with room if image exists
+    # Отправляем фото с описанием
     if room.image_url:
         await callback.message.answer_photo(
             photo=room.image_url,
             caption=text,
-            reply_markup=room_detail_keyboard(room.id),
-            parse_mode=None  # Отключаем Markdown
+            reply_markup=room_detail_keyboard(room.id, has_video=has_video),
+            parse_mode=None
         )
     else:
         await callback.message.answer(
             text=text,
-            reply_markup=room_detail_keyboard(room.id),
-            parse_mode=None  # Отключаем Markdown
+            reply_markup=room_detail_keyboard(room.id, has_video=has_video),
+            parse_mode=None
         )
 
     await callback.answer()
@@ -176,13 +197,15 @@ async def room_details(callback: CallbackQuery, session: AsyncSession):
 # Handler for "Contact Support" button
 @router.message(F.text == "📞 Связь с поддержкой")
 async def contact_support(message: Message):
+    logger.info(f"Contact support from user {message.from_user.id}")
+
     await message.answer(
         "📞 Связь с поддержкой\n\n"
         "Если у вас возникли вопросы или вам нужна помощь, вы можете связаться с нами одним из следующих способов:\n\n"
         f"☎️ Телефон: {RESORT_PHONE}\n"
         f"✉️ Telegram: @{RESORT_ADMIN_USERNAME}",
         reply_markup=support_keyboard(),
-        parse_mode=None  # Отключаем Markdown
+        parse_mode=None
     )
 
 
@@ -199,7 +222,7 @@ async def call_support(callback: CallbackQuery):
         "Вы можете позвонить нам по номеру:\n"
         f"{RESORT_PHONE}\n\n"
         "Часы работы: 9:00 - 18:00 (ПН-СБ)",
-        parse_mode=None  # Отключаем Markdown
+        parse_mode=None
     )
     await callback.answer()
 
@@ -207,6 +230,8 @@ async def call_support(callback: CallbackQuery):
 # Handler for "Reviews" button
 @router.message(F.text == "⭐ Отзывы")
 async def show_reviews(message: Message, session: AsyncSession):
+    logger.info(f"Show reviews from user {message.from_user.id}")
+
     await message.answer(
         "⭐ Отзывы о курорте\n\n"
         "Здесь вы можете прочитать отзывы наших гостей или оставить свой отзыв.\n\n"
@@ -257,125 +282,95 @@ async def room_reviews(callback: CallbackQuery, session: AsyncSession):
     await callback.message.answer(
         text,
         reply_markup=room_detail_keyboard(room_id),
-        parse_mode=None  # Отключаем Markdown
+        parse_mode=None
     )
     await callback.answer()
 
-
-# Handler for unknown messages
-@router.message()
-async def unknown_message(message: Message):
-    await message.answer(
-        "Я не понимаю эту команду. Пожалуйста, воспользуйтесь меню.",
-        reply_markup=main_keyboard()
-    )
-
-
-# Добавьте ЭТО в КОНЕЦ файла app/bot/handlers.py
 
 # =================== ВИДЕО ФУНКЦИИ ===================
 
-# Handler для видео-туров
+# Handler для видео-туров - ИСПРАВЛЕННАЯ ВЕРСИЯ
 @router.callback_query(lambda c: c.data and c.data.startswith("video_tour_"))
 async def show_video_tour(callback: CallbackQuery, session: AsyncSession):
+    logger.info(f"Video tour: {callback.data}")
+
     room_id = int(callback.data.split("_")[2])
     room = await get_room(session, room_id)
 
-    if not room or not room.video_url:
-        await callback.answer("Видео-тур пока недоступен")
+    if not room:
+        await callback.answer("Номер не найден")
         return
 
-    # Отправляем видео с описанием
-    await callback.message.answer_video(
-        video=room.video_url,
-        caption=(
-            f"🎥 Видео-тур: {room.name}\n\n"
-            f"Посмотрите наш номер в деталях. "
-            f"Вы можете оценить пространство, вид из окон и все удобства."
-        ),
-        reply_markup=room_detail_keyboard(room_id, has_video=True)  # Обновите функцию keyboard
-    )
-    await callback.answer()
-
-
-# Handler для 360° фото
-@router.callback_query(lambda c: c.data and c.data.startswith("360_view_"))
-async def show_360_view(callback: CallbackQuery):
-    tour_type = callback.data.split("_")[2]
-
-    tours = {
-        "territory": {
-            "url": "https://example.com/360/territory",  # Замените на реальные ссылки
-            "title": "360° тур по территории курорта",
-            "description": "Прогуляйтесь по нашей территории виртуально"
-        },
-        "restaurant": {
-            "url": "https://example.com/360/restaurant",
-            "title": "360° тур по ресторану",
-            "description": "Посмотрите наш ресторан и банкетный зал"
-        },
-        "pool": {
-            "url": "https://example.com/360/pool",
-            "title": "360° тур по бассейну",
-            "description": "Оцените наш бассейн и зону отдыха"
-        }
-    }
-
-    tour = tours.get(tour_type)
-    if tour:
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🌐 Открыть 360° тур", url=tour["url"])],
-            [InlineKeyboardButton(text="🔙 Назад", callback_data="virtual_tours")]
-        ])
-
+    # Проверяем наличие видео URL
+    if not hasattr(room, 'video_url') or not room.video_url:
+        # Если видео нет, показываем сообщение
         await callback.message.answer(
-            f"🎮 {tour['title']}\n\n{tour['description']}",
-            reply_markup=keyboard
+            f"🎥 Видео-тур для номера \"{room.name}\" временно недоступен.\n\n"
+            f"Вы можете посмотреть фотографии номера или связаться с нами для виртуальной экскурсии.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📸 Смотреть фото", callback_data=f"all_photos_{room_id}")],
+                [InlineKeyboardButton(text="📞 Связаться", callback_data="call_support")],
+                [InlineKeyboardButton(text="🔙 Назад", callback_data=f"room_{room_id}")]
+            ])
         )
+        await callback.answer("Видео временно недоступно")
+        return
 
+    # Если видео есть - отправляем ссылку
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="▶️ Смотреть видео", url=room.video_url)],
+        [InlineKeyboardButton(text="🔙 Назад к номеру", callback_data=f"room_{room_id}")]
+    ])
+
+    await callback.message.answer(
+        f"🎥 Видео-тур: {room.name}\n\n"
+        f"Нажмите кнопку ниже, чтобы посмотреть видео-обзор номера.",
+        reply_markup=keyboard
+    )
     await callback.answer()
 
 
 # Добавим в главное меню новую кнопку
 @router.message(F.text == "🎥 Виртуальные туры")
 async def virtual_tours_menu(message: Message):
+    logger.info(f"Virtual tours from user {message.from_user.id}")
+
+    # Временные ссылки на демо-контент
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🏞 360° тур по территории", callback_data="360_view_territory")],
-        [InlineKeyboardButton(text="🍽 360° тур по ресторану", callback_data="360_view_restaurant")],
-        [InlineKeyboardButton(text="🏊 360° тур по бассейну", callback_data="360_view_pool")],
-        [InlineKeyboardButton(text="🎬 Общее видео о курорте", callback_data="general_video")],
+        [InlineKeyboardButton(
+            text="🏞 Обзор территории",
+            url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # Замените на реальное видео
+        )],
+        [InlineKeyboardButton(
+            text="🏊 Зона бассейна",
+            url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # Замените на реальное видео
+        )],
+        [InlineKeyboardButton(
+            text="🍽 Ресторан",
+            url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # Замените на реальное видео
+        )],
+        [InlineKeyboardButton(
+            text="🏠 Виртуальный тур 360°",
+            url="https://www.google.com/maps/@41.2995,69.2401,3a,75y,90t/data=!3m6!1e1!3m4!1s0x0:0x0!2e0!7i13312!8i6656"
+            # Пример
+        )],
         [InlineKeyboardButton(text="🔙 Главное меню", callback_data="back_to_main")]
     ])
 
     await message.answer(
         "🎥 Виртуальные туры по курорту Oqtoshsoy\n\n"
-        "Выберите, что хотите посмотреть:",
+        "Выберите, что хотите посмотреть:\n"
+        "Видео откроются в браузере.",
         reply_markup=keyboard,
         parse_mode=None
     )
 
 
-# Handler для общего видео о курорте
-@router.callback_query(F.data == "general_video")
-async def show_general_video(callback: CallbackQuery):
-    # Замените на реальную ссылку на видео
-    video_url = "https://youtube.com/watch?v=YOUR_VIDEO_ID"
-
-    await callback.message.answer(
-        "🎬 Видео-презентация курорта Oqtoshsoy\n\n"
-        "Посмотрите наш курорт с высоты птичьего полета, "
-        "узнайте о всех возможностях для отдыха и развлечений.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="▶️ Смотреть на YouTube", url=video_url)],
-            [InlineKeyboardButton(text="🔙 Назад", callback_data="virtual_tours")]
-        ])
-    )
-    await callback.answer()
-
-
 # Handler для показа всех фото номера
 @router.callback_query(lambda c: c.data and c.data.startswith("all_photos_"))
 async def show_all_photos(callback: CallbackQuery, session: AsyncSession):
+    logger.info(f"All photos: {callback.data}")
+
     room_id = int(callback.data.split("_")[2])
     room = await get_room(session, room_id)
 
@@ -387,7 +382,6 @@ async def show_all_photos(callback: CallbackQuery, session: AsyncSession):
     photos = []
     if room.photos:
         try:
-            import json
             photos = json.loads(room.photos)
         except:
             photos = []
@@ -426,7 +420,8 @@ async def show_all_photos(callback: CallbackQuery, session: AsyncSession):
 
     await callback.answer()
 
-# =================== КОНЕЦ ВИДЕО ФУНКЦИЙ ===================
+
+# =================== БЫСТРОЕ БРОНИРОВАНИЕ ===================
 
 # Генератор календаря для выбора дат
 def generate_calendar_keyboard(year: int, month: int, selected_dates: list = None):
@@ -510,6 +505,8 @@ def generate_calendar_keyboard(year: int, month: int, selected_dates: list = Non
 # Быстрое бронирование
 @router.callback_query(lambda c: c.data and c.data.startswith("quick_book_"))
 async def quick_booking(callback: CallbackQuery, session: AsyncSession, state: FSMContext):
+    logger.info(f"Quick booking: {callback.data}")
+
     room_id = int(callback.data.split("_")[2])
     room = await get_room(session, room_id)
 
@@ -546,8 +543,8 @@ async def quick_booking(callback: CallbackQuery, session: AsyncSession, state: F
     await callback.message.answer(
         f"⚡ Быстрое бронирование\n\n"
         f"🛏 {room.name}\n"
-        f"💰 {room.price_per_night:,} сум/ночь (будни)\n"
-        f"💰 {room.weekend_price:,} сум/ночь (выходные)\n\n"
+        f"💰 {room.price_per_night:,.0f} сум/ночь (будни)\n"
+        f"💰 {getattr(room, 'weekend_price', room.price_per_night):,.0f} сум/ночь (выходные)\n\n"
         f"Выберите вариант:",
         reply_markup=keyboard
     )
@@ -557,6 +554,8 @@ async def quick_booking(callback: CallbackQuery, session: AsyncSession, state: F
 # Экспресс-бронирование
 @router.callback_query(lambda c: c.data and c.data.startswith("express_book_"))
 async def express_booking(callback: CallbackQuery, session: AsyncSession):
+    logger.info(f"Express booking: {callback.data}")
+
     parts = callback.data.split("_")
     room_id = int(parts[2])
     check_in = datetime.fromisoformat(parts[3]).date()
@@ -586,17 +585,16 @@ async def express_booking(callback: CallbackQuery, session: AsyncSession):
         current += timedelta(days=1)
 
     weekday_nights = nights - weekend_nights
-    total_price = (weekday_nights * room.price_per_night) + (weekend_nights * room.weekend_price)
 
-    # Запрашиваем контакты
+    # Используем getattr для безопасного доступа к weekend_price
+    weekend_price = getattr(room, 'weekend_price', room.price_per_night)
+    total_price = (weekday_nights * room.price_per_night) + (weekend_nights * weekend_price)
+
+    # Отправляем в веб-приложение для завершения бронирования
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
-            text="📱 Поделиться контактом",
-            callback_data=f"share_contact_{room_id}_{check_in}_{check_out}"
-        )],
-        [InlineKeyboardButton(
-            text="✍️ Ввести номер вручную",
-            callback_data=f"manual_contact_{room_id}_{check_in}_{check_out}"
+            text="📝 Завершить бронирование",
+            web_app=WebAppInfo(url=f"{WEBAPP_URL}?room_id={room_id}&check_in={check_in}&check_out={check_out}")
         )],
         [InlineKeyboardButton(
             text="❌ Отмена",
@@ -611,8 +609,19 @@ async def express_booking(callback: CallbackQuery, session: AsyncSession):
         f"📅 Заезд: {check_in.strftime('%d.%m.%Y')}\n"
         f"📅 Выезд: {check_out.strftime('%d.%m.%Y')}\n"
         f"🌙 Ночей: {nights} (будни: {weekday_nights}, выходные: {weekend_nights})\n"
-        f"💰 Итого: {total_price:,} сум\n\n"
-        f"Для завершения бронирования нужен ваш контакт:",
+        f"💰 Итого: {total_price:,.0f} сум\n\n"
+        f"Нажмите кнопку ниже для завершения бронирования:",
         reply_markup=keyboard
     )
     await callback.answer()
+
+
+# Handler for unknown messages
+@router.message()
+async def unknown_message(message: Message):
+    logger.info(f"Unknown message from user {message.from_user.id}: {message.text}")
+
+    await message.answer(
+        "Я не понимаю эту команду. Пожалуйста, воспользуйтесь меню.",
+        reply_markup=main_keyboard()
+    )

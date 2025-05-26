@@ -64,14 +64,20 @@ def room_detail_keyboard(room_id, has_video=False):
         ]
     ]
 
-    # Добавляем кнопки для медиа если есть
+    # Добавляем кнопки для медиа
+    media_buttons = []
     if has_video:
-        kb.append([
-            InlineKeyboardButton(text="🎥 Видео-тур", callback_data=f"video_tour_{room_id}"),
-            InlineKeyboardButton(text="📸 Все фото", callback_data=f"all_photos_{room_id}")
-        ])
+        media_buttons.append(InlineKeyboardButton(text="🎥 Видео-тур", callback_data=f"video_tour_{room_id}"))
+    media_buttons.append(InlineKeyboardButton(text="📸 Все фото", callback_data=f"all_photos_{room_id}"))
 
-    kb.append([InlineKeyboardButton(text="🔙 Назад к списку", callback_data="back_to_rooms")])
+    if media_buttons:
+        kb.append(media_buttons)
+
+    kb.extend([
+        [InlineKeyboardButton(text="⭐ Отзывы", callback_data=f"reviews_{room_id}")],
+        [InlineKeyboardButton(text="🔙 Назад к списку", callback_data="back_to_rooms")]
+    ])
+
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 # Клавиатура умного помощника
